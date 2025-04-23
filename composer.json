@@ -11,8 +11,7 @@
         }
     },
     "require": {
-        "statamic/cms": "^5.0",
-        "edalzell/forma": "^3.1"
+        "statamic/cms": "^5.0"
     },
     "require-dev": {
         "orchestra/testbench": "^9.0",
