@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace AltDesign\RiffRaff;
 
 use AltDesign\RiffRaff\Listeners\FormSubmittedListener;
-use Edalzell\Forma\ConfigController;
-use Edalzell\Forma\Forma;
 use Illuminate\Support\Facades\Event;
 use Statamic\Events\FormSubmitted;
 use Statamic\Facades\CP\Nav;
@@ -32,7 +30,6 @@ class ServiceProvider extends AddonServiceProvider
     {
         parent::bootAddon();
 
-        $this->setupForma();
         $this->setupPublishables();
         $this->addToNav();
         $this->registerPermissions();
@@ -72,10 +69,5 @@ class ServiceProvider extends AddonServiceProvider
         Statamic::afterInstalled(function ($command): void {
             $command->call('vendor:publish', ['--tag' => 'alt-design/alt-riffraff']);
         });
-    }
-
-    private function setupForma(): void
-    {
-        Forma::add('alt-design/alt-riffraff', ConfigController::class);
     }
 }
