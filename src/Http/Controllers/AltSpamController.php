@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace AltDesign\SpamAddon\Http\Controllers;
+namespace AltDesign\RiffRaff\Http\Controllers;
 
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\File;
@@ -20,17 +20,16 @@ class AltSpamController
     {
         $manager = new Manager;
 
-        if (! $manager->disk()->exists('content/alt-spam')) {
-            $manager->disk()->makeDirectory('content/alt-spam');
+        if (! $manager->disk()->exists('content/riffraff')) {
+            $manager->disk()->makeDirectory('content/riffraff');
         }
 
-        $allSubmissions = File::allFiles(app_path() . '/../content/alt-spam');
+        $allSubmissions = File::allFiles(app_path() . '/../content/riffraff');
         $allSubmissions = collect($allSubmissions)->sortByDesc(function ($file) {
             return $file->getCTime();
         });
 
         foreach ($allSubmissions as $submission) {
-            // event submission form handle
             $data = YAML::parse(File::get($submission));
             $this->data[] = $data;
         }
@@ -38,13 +37,13 @@ class AltSpamController
         $blueprint = with(new BlueprintRepository)
             ->setDirectory(
                 __DIR__ . '/../../../resources/blueprints'
-            )->find('altkismet');
+            )->find('riffraff');
 
         $fields = $blueprint->fields()->addValues($this->data);
 
         $fields = $fields->preProcess();
 
-        return view('spam-addon::index', [
+        return view('alt-riffraff-addon::index', [
             'blueprint' => $blueprint->toPublishArray(),
             'values' => $fields->values(),
             'meta' => $fields->meta(),
@@ -56,8 +55,8 @@ class AltSpamController
     {
         $manager = new Manager;
 
-        if ($manager->disk()->exists('content/alt-spam/' . $id . '.yaml')) {
-            $manager->disk()->delete('content/alt-spam/' . $id . '.yaml');
+        if ($manager->disk()->exists('content/riffraff/' . $id . '.yaml')) {
+            $manager->disk()->delete('content/riffraff/' . $id . '.yaml');
         }
 
         return response('', 204);
@@ -67,11 +66,11 @@ class AltSpamController
     {
         $manager = new Manager;
 
-        if (! $manager->disk()->exists('content/alt-spam')) {
-            $manager->disk()->makeDirectory('content/alt-spam');
+        if (! $manager->disk()->exists('content/riffraff')) {
+            $manager->disk()->makeDirectory('content/riffraff');
         }
 
-        $submission = File::get(app_path() . '/../content/alt-spam/' . $id . '.yaml');
+        $submission = File::get(app_path() . '/../content/riffraff/' . $id . '.yaml');
         $submission = YAML::parse($submission);
 
         $form = Form::find($submission['form_slug']);
@@ -81,8 +80,8 @@ class AltSpamController
         $submission = new Submission;
         $submission->form($form)->data($data)->save();
 
-        if ($manager->disk()->exists('content/alt-spam/' . $id . '.yaml')) {
-            $manager->disk()->delete('content/alt-spam/' . $id . '.yaml');
+        if ($manager->disk()->exists('content/riffraff/' . $id . '.yaml')) {
+            $manager->disk()->delete('content/riffraff/' . $id . '.yaml');
         }
 
         return response('', 204);
@@ -92,14 +91,14 @@ class AltSpamController
     {
         $manager = new Manager;
 
-        if (! $manager->disk()->exists('content/alt-spam')) {
-            $manager->disk()->makeDirectory('content/alt-spam');
+        if (! $manager->disk()->exists('content/riffraff')) {
+            $manager->disk()->makeDirectory('content/riffraff');
         }
 
-        $submission = File::get(app_path() . '/../content/alt-spam/' . $id . '.yaml');
+        $submission = File::get(app_path() . '/../content/riffraff/' . $id . '.yaml');
         $submission = YAML::parse($submission);
 
-        return view('spam-addon::show', [
+        return view('alt-riffraff-addon::show', [
             'id' => $submission['id'],
             'submission' => $submission,
             'form' => Form::find($submission['form_slug']),

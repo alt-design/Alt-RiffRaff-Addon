@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace AltDesign\SpamAddon\Listeners;
+namespace AltDesign\RiffRaff\Listeners;
 
 use Illuminate\Support\Facades\Http;
 use Statamic\Events\FormSubmitted;
@@ -13,16 +13,12 @@ class FormSubmittedListener
 {
     public function handle(FormSubmitted $event): bool
     {
-        $apiEmail = config('spam-addon.api_email', '');
-        $apiPassword = config('spam-addon.api_password', '');
-        $apiAuthenticationEndpoint = config('spam-addon.api_authentication_endpoint', '');
-        $apiEvaluateEndpoint = config('spam-addon.api_evaluate_endpoint', '');
+        $apiEmail = config('alt-riffraff-addon.api_email', '');
+        $apiPassword = config('alt-riffraff-addon.api_password', '');
+        $apiAuthenticationEndpoint = config('alt-riffraff-addon.api_authentication_endpoint', '');
+        $apiEvaluateEndpoint = config('alt-riffraff-addon.api_evaluate_endpoint', '');
 
         if (empty($apiEmail) || empty($apiPassword)) {
-            // No API credentials provided in the config, so we can't check for spam
-            // should we allow the content to be sent? or should we block/hold it?
-            // false means we don't want to send the form
-
             return true;
         }
 
@@ -40,8 +36,6 @@ class FormSubmittedListener
         ]);
 
         if ($authResponse->failed()) {
-            // Couldn't authenticate with the API so we can't check for spam
-            // should we allow the content to be sent? or should we block/hold it?
             return true;
         }
 
@@ -55,8 +49,6 @@ class FormSubmittedListener
         ]);
 
         if ($response->failed()) {
-            // Couldn't evaluate the content so we can't check for spam
-            // should we allow the content to be sent? or should we block/hold it?
             return true;
         }
 
@@ -65,18 +57,15 @@ class FormSubmittedListener
         $threshold = $response->json('threshold');
 
         if ($isSpam) {
-            // Send a validation error if the spam score exceeds the threshold
-
-            // Considered spam, so we should save it for review and not send it
             $manager = new Manager;
 
-            if (! $manager->disk()->exists('content/alt-spam')) {
-                $manager->disk()->makeDirectory('content/alt-spam');
+            if (! $manager->disk()->exists('content/riffraff')) {
+                $manager->disk()->makeDirectory('content/riffraff');
             }
 
             $submissionId = $event->submission->id();
 
-            $manager->disk()->put('content/alt-spam/' . $submissionId . '.yaml', Yaml::dump([
+            $manager->disk()->put('content/riffraff/' . $submissionId . '.yaml', Yaml::dump([
                 'id' => $submissionId,
                 'data' => $event->submission->data()->all(),
                 'spam_score' => $spamScore,
@@ -88,7 +77,6 @@ class FormSubmittedListener
             return false;
         }
 
-        // Assuming we pass the spam check, we can proceed with the form submission
         return true;
     }
 }

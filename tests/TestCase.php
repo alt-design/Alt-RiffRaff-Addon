@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace AltDesign\SpamAddon\Tests;
+namespace AltDesign\RiffRaff\Tests;
 
-use AltDesign\SpamAddon\ServiceProvider;
+use AltDesign\RiffRaff\ServiceProvider;
 use Statamic\Testing\AddonTestCase;
 
 abstract class TestCase extends AddonTestCase

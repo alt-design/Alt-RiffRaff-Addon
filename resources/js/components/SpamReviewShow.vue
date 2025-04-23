@@ -33,16 +33,16 @@ export default ({
       window.history.back()
     },
     release(id) {
-      Statamic.$axios.post(cp_url('alt-design/spam-addon/release/' + id)).then(res => {
-        window.location.href = cp_url('alt-design/spam-addon')
+      Statamic.$axios.post(cp_url('alt-design/riffraff/release/' + id)).then(res => {
+        window.location.href = cp_url('alt-design/riffraff')
       }).catch(err => {
         // handle error
       })
     },
     destroy(id) {
       if (confirm('Are you sure?')) {
-        Statamic.$axios.delete(cp_url('alt-design/spam-addon/' + id)).then(res => {
-          window.location.href = cp_url('alt-design/spam-addon')
+        Statamic.$axios.delete(cp_url('alt-design/riffraff/' + id)).then(res => {
+          window.location.href = cp_url('alt-design/riffraff')
         }).catch(err => {
           // handle error
         })

@@ -1,6 +1,6 @@
 tabs:
-  spam-addon:
-    display: 'Spam Addon'
+  alt-riffraff-addon:
+    display: 'RiffRaff'
     sections:
       -
         display: 'API Credentials'

@@ -1,12 +1,12 @@
 {
-  "resources/css/spam-addon.css": {
-    "file": "assets/spam-addon-75c849e0.css",
+  "resources/css/riffraff.css": {
+    "file": "assets/riffraff-0f1c048c.css",
     "isEntry": true,
-    "src": "resources/css/spam-addon.css"
+    "src": "resources/css/riffraff.css"
   },
-  "resources/js/spam-addon.js": {
-    "file": "assets/spam-addon-c6feaa2e.js",
+  "resources/js/riffraff.js": {
+    "file": "assets/riffraff-c3f7c262.js",
     "isEntry": true,
-    "src": "resources/js/spam-addon.js"
+    "src": "resources/js/riffraff.js"
   }
 }

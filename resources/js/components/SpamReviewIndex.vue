@@ -38,7 +38,7 @@
           </td>
           <td class="w-1/8">
             <div class="flex h-full">
-              <a v-bind:href="'spam-addon/show/' + item.id" class="btn text-blue-500 mr-2">View</a>
+              <a v-bind:href="'riffraff/show/' + item.id" class="btn text-blue-500 mr-2">View</a>
               <button @click="release(item.id)" class="btn text-green-500 mr-2">Release</button>
               <button @click="destroy(item.id)" class="btn text-red-500 mr-2">Delete</button>
             </div>
@@ -57,7 +57,7 @@ export default ({
   },
   methods: {
     release(id) {
-      Statamic.$axios.post(cp_url('alt-design/spam-addon/release/' + id)).then(res => {
+      Statamic.$axios.post(cp_url('alt-design/riffraff/release/' + id)).then(res => {
         window.location.reload()
       }).catch(err => {
         // handle error
@@ -65,7 +65,7 @@ export default ({
     },
     destroy(id) {
       if (confirm('Are you sure?')) {
-        Statamic.$axios.delete(cp_url('alt-design/spam-addon/' + id)).then(res => {
+        Statamic.$axios.delete(cp_url('alt-design/riffraff/' + id)).then(res => {
           window.location.reload()
         }).catch(err => {
           // handle error

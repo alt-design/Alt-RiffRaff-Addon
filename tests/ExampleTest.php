@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace AltDesign\SpamAddon\Tests;
+namespace AltDesign\RiffRaff\Tests;
 
 class ExampleTest extends TestCase
 {

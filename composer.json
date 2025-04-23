@@ -1,13 +1,13 @@
 {
-    "name": "alt-design/spam-addon",
+    "name": "alt-design/alt-riffraff-addon",
     "autoload": {
         "psr-4": {
-            "AltDesign\\SpamAddon\\": "src"
+            "AltDesign\\RiffRaff\\": "src"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "AltDesign\\SpamAddon\\Tests\\": "tests"
+            "AltDesign\\RiffRaff\\Tests\\": "tests"
         }
     },
     "require": {
@@ -27,12 +27,12 @@
     },
     "extra": {
         "statamic": {
-            "name": "Spam Addon",
-            "description": "Spam"
+            "name": "RiffRaff",
+            "description": "A Statamic addon for managing RiffRaff"
         },
         "laravel": {
             "providers": [
-                "AltDesign\\SpamAddon\\ServiceProvider"
+                "AltDesign\\RiffRaff\\ServiceProvider"
             ]
         }
     },

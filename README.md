@@ -14,7 +14,7 @@
 composer require the addon using the following command:
 
 ``` bash
-composer require alt-design/spam-addon
+composer require alt-design/alt-riffraff-addon
 ```
 
 ## How to Use

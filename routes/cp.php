@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-use AltDesign\SpamAddon\Http\Controllers\AltSpamController;
+use AltDesign\RiffRaff\Http\Controllers\AltSpamController;
 use Illuminate\Support\Facades\Route;
 
 Route::group([
-    'namespace' => 'AltDesign\SpamAddon\Http\Controllers',
+    'namespace' => 'AltDesign\RiffRaff\Http\Controllers',
     'middleware' => ['web', 'statamic.cp.authenticated'],
 ], function () {
-    Route::get('/alt-design/spam-addon', [AltSpamController::class, 'index'])
-        ->name('spam-addon.index');
+    Route::get('/alt-design/riffraff', [AltSpamController::class, 'index'])
+        ->name('riffraff.index');
 
-    Route::delete('/alt-design/spam-addon/{id}', [AltSpamController::class, 'destroy'])
-        ->name('spam-addon.destroy');
+    Route::delete('/alt-design/riffraff/{id}', [AltSpamController::class, 'destroy'])
+        ->name('riffraff.destroy');
 
-    Route::post('/alt-design/spam-addon/release/{id}', [AltSpamController::class, 'store'])
-        ->name('spam-addon.store');
+    Route::post('/alt-design/riffraff/release/{id}', [AltSpamController::class, 'store'])
+        ->name('riffraff.store');
 
-    Route::get('/alt-design/spam-addon/show/{id}', [AltSpamController::class, 'show'])
-        ->name('spam-addon.show');
+    Route::get('/alt-design/riffraff/show/{id}', [AltSpamController::class, 'show'])
+        ->name('riffraff.show');
 });

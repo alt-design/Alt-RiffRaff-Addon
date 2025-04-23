@@ -6,8 +6,8 @@ export default defineConfig({
     plugins: [
         laravel({
             input: [
-                'resources/js/spam-addon.js',
-                'resources/css/spam-addon.css',
+                'resources/js/riffraff.js',
+                'resources/css/riffraff.css',
             ],
             publicDirectory: 'resources/dist',
         }),
