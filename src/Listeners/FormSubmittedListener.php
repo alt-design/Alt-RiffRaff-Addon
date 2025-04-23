@@ -13,10 +13,10 @@ class FormSubmittedListener
 {
     public function handle(FormSubmitted $event): bool
     {
-        $apiEmail = config('alt-riffraff-addon.api_email', '');
-        $apiPassword = config('alt-riffraff-addon.api_password', '');
-        $apiAuthenticationEndpoint = config('alt-riffraff-addon.api_authentication_endpoint', '');
-        $apiEvaluateEndpoint = config('alt-riffraff-addon.api_evaluate_endpoint', '');
+        $apiEmail = config('alt-riffraff.api_email', '');
+        $apiPassword = config('alt-riffraff.api_password', '');
+        $apiAuthenticationEndpoint = config('alt-riffraff.api_authentication_endpoint', '');
+        $apiEvaluateEndpoint = config('alt-riffraff.api_evaluate_endpoint', '');
 
         if (empty($apiEmail) || empty($apiPassword)) {
             return true;

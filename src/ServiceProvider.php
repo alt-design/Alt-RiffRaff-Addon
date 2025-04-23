@@ -66,16 +66,16 @@ class ServiceProvider extends AddonServiceProvider
     private function setupPublishables(): void
     {
         $this->publishes([
-            __DIR__ . '/../config/alt-riffraff-addon.php' => config_path('alt-riffraff-addon.php'),
-        ], 'alt-design/alt-riffraff-addon');
+            __DIR__ . '/../config/alt-riffraff.php' => config_path('alt-riffraff.php'),
+        ], 'alt-design/alt-riffraff');
 
         Statamic::afterInstalled(function ($command): void {
-            $command->call('vendor:publish', ['--tag' => 'alt-design/alt-riffraff-addon']);
+            $command->call('vendor:publish', ['--tag' => 'alt-design/alt-riffraff']);
         });
     }
 
     private function setupForma(): void
     {
-        Forma::add('alt-design/alt-riffraff-addon', ConfigController::class);
+        Forma::add('alt-design/alt-riffraff', ConfigController::class);
     }
 }

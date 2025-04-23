@@ -1,5 +1,5 @@
 {
-    "name": "alt-design/alt-riffraff-addon",
+    "name": "alt-design/alt-riffraff",
     "autoload": {
         "psr-4": {
             "AltDesign\\RiffRaff\\": "src"

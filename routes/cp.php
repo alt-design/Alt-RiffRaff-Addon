@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::group([
     'namespace' => 'AltDesign\RiffRaff\Http\Controllers',
-    'middleware' => ['web', 'statamic.cp.authenticated'],
+    'middleware' => ['statamic.cp.authenticated'],
 ], function () {
     Route::get('/alt-design/riffraff', [AltSpamController::class, 'index'])
         ->name('riffraff.index');

@@ -1,12 +1,12 @@
 tabs:
-  alt-riffraff-addon:
+  alt-riffraff:
     display: 'RiffRaff'
     sections:
       -
         display: 'API Credentials'
         fields:
           -
-            handle: api_email 
+            handle: api_email
             field:
               display: 'Email address'
               type: text
@@ -16,6 +16,6 @@ tabs:
             handle: api_password
             field:
               display: 'Password'
-              type: text 
+              type: text
               read_only: false
               width: 50

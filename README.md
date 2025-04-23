@@ -14,7 +14,7 @@
 composer require the addon using the following command:
 
 ``` bash
-composer require alt-design/alt-riffraff-addon
+composer require alt-design/alt-riffraff
 ```
 
 ## How to Use

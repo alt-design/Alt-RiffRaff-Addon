@@ -43,7 +43,7 @@ class AltSpamController
 
         $fields = $fields->preProcess();
 
-        return view('alt-riffraff-addon::index', [
+        return view('alt-riffraff::index', [
             'blueprint' => $blueprint->toPublishArray(),
             'values' => $fields->values(),
             'meta' => $fields->meta(),
@@ -98,7 +98,7 @@ class AltSpamController
         $submission = File::get(app_path() . '/../content/riffraff/' . $id . '.yaml');
         $submission = YAML::parse($submission);
 
-        return view('alt-riffraff-addon::show', [
+        return view('alt-riffraff::show', [
             'id' => $submission['id'],
             'submission' => $submission,
             'form' => Form::find($submission['form_slug']),
