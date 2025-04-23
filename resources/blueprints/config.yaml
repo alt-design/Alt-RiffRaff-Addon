@@ -1,0 +1,21 @@
+tabs:
+  spam-addon:
+    display: 'Spam Addon'
+    sections:
+      -
+        display: 'API Credentials'
+        fields:
+          -
+            handle: api_email 
+            field:
+              display: 'Email address'
+              type: text
+              read_only: false
+              width: 50
+          -
+            handle: api_password
+            field:
+              display: 'Password'
+              type: text 
+              read_only: false
+              width: 50

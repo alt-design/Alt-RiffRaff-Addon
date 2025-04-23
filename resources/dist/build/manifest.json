@@ -1,0 +1,12 @@
+{
+  "resources/css/spam-addon.css": {
+    "file": "assets/spam-addon-75c849e0.css",
+    "isEntry": true,
+    "src": "resources/css/spam-addon.css"
+  },
+  "resources/js/spam-addon.js": {
+    "file": "assets/spam-addon-c6feaa2e.js",
+    "isEntry": true,
+    "src": "resources/js/spam-addon.js"
+  }
+}

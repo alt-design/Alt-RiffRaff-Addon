@@ -1,0 +1,41 @@
+{
+    "name": "alt-design/spam-addon",
+    "autoload": {
+        "psr-4": {
+            "AltDesign\\SpamAddon\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "AltDesign\\SpamAddon\\Tests\\": "tests"
+        }
+    },
+    "require": {
+        "statamic/cms": "^5.0",
+        "edalzell/forma": "^3.1"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^9.0",
+        "laravel/pint": "^1.22",
+        "rector/rector": "^2.0"
+    },
+    "config": {
+        "allow-plugins": {
+            "pixelfear/composer-dist-plugin": true,
+            "pestphp/pest-plugin": true
+        }
+    },
+    "extra": {
+        "statamic": {
+            "name": "Spam Addon",
+            "description": "Spam"
+        },
+        "laravel": {
+            "providers": [
+                "AltDesign\\SpamAddon\\ServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
