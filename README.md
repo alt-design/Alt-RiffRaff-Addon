@@ -17,11 +17,17 @@ composer require the addon using the following command:
 composer require alt-design/alt-riffraff
 ```
 
+In your `.env` file, add your RiffRaff Credentials
+
+``` bash
+ALT_RIFFRAFF_EMAIL=
+ALT_RIFFRAFF_PASSWORD=
+```
+
 ## How to Use
 
-1. After installing the addon, login to your Statamic control panel and click on "RiffRaff" under "Settings" to enter your RiffRaff credentials.
-2. Once you have entered your credentials, the addon will automatically check all form submissions for spam.
-3. If a submission is detected as spam, it will be automatically "held" and you will be able to manage it from the "Review Spam" in the "Tools" section of the control panel.
+1. The addon will automatically check all form submissions for spam.
+2. If a submission is detected as spam, it will be automatically "held" and you will be able to manage it from the "Review Spam" in the "Tools" section of the control panel.
 
 ## Questions etc
 
