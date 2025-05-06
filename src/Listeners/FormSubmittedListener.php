@@ -24,6 +24,8 @@ class FormSubmittedListener
 
         $formData = $event->submission->data()->all();
 
+        $formData = array_filter($formData, fn($item) => $item !== null);
+
         $formDataString = array_reduce($formData, function (string $carry, string $item): string {
             return $carry . ' ' . $item;
         }, '');
