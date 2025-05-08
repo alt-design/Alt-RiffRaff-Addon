@@ -26,7 +26,11 @@ class FormSubmittedListener
 
         $formData = array_filter($formData, fn($item) => $item !== null);
 
-        $formDataString = array_reduce($formData, function (string $carry, string $item): string {
+        $formDataString = array_reduce($formData, function (string $carry, string|array $item): string {
+            if (is_array($item)) {
+                return $carry;
+            }
+
             return $carry . ' ' . $item;
         }, '');
 
