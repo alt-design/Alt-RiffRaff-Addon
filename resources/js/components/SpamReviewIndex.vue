@@ -40,8 +40,7 @@
             {{ item.spam_score }} / {{ item.threshold }}
           </td>
           <td>
-              {{ (item.data.message ?? item.data).slice(0, 50) + '...' }}
-          </td>
+              {{ (typeof (item.data.message ?? item.data) === 'string' ? (item.data.message ?? item.data) : '').slice(0, 50) + '...' }}          </td>
           <td>
             <a class="text-blue-400 underline" :href="cp_url('forms/' + item.form_slug)">{{ item.form_slug }}</a>
           </td>
