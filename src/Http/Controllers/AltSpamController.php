@@ -55,6 +55,21 @@ class AltSpamController
     {
         $manager = new Manager;
 
+        if($id === 'all') {
+            // Delete all files within the /riffraff/ folder
+            if ($manager->disk()->exists('content/riffraff')) {
+                // Get all files in the directory
+                $files = $manager->disk()->getFiles('content/riffraff');
+
+                // Loop through and delete each file
+                foreach ($files as $file) {
+                    $manager->disk()->delete($file);
+                }
+            }
+
+            return response('', 204);
+        }
+
         if ($manager->disk()->exists('content/riffraff/' . $id . '.yaml')) {
             $manager->disk()->delete('content/riffraff/' . $id . '.yaml');
         }

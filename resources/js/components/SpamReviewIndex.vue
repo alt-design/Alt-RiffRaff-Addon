@@ -1,6 +1,9 @@
 <template>
   <div>
-    <h1>Spam Review Form Submissions</h1>
+    <div class="flex items-center justify-between">
+      <h1>Suspected Spam Form Submissions</h1>
+      <button @click="deleteAll()" class="btn text-red-500 mr-2">Delete All</button>
+    </div>
 
     <div class="my-4">
       <p>
@@ -19,6 +22,9 @@
             <span>Spam Score</span>
           </th>
           <th>
+            <span>Preview</span>
+          </th>
+          <th>
             <span>Form</span>
           </th>
           <th>
@@ -32,6 +38,9 @@
           </td>
           <td>
             {{ item.spam_score }} / {{ item.threshold }}
+          </td>
+          <td>
+              {{ (item.data.message ?? item.data).slice(0, 50) + '...' }}
           </td>
           <td>
             <a class="text-blue-400 underline" :href="cp_url('forms/' + item.form_slug)">{{ item.form_slug }}</a>
@@ -71,6 +80,15 @@ export default ({
           // handle error
         })
       }
+    },
+    deleteAll() {
+        if (confirm('Are you sure? This will delete ALL suspected spam entries.')) {
+            Statamic.$axios.delete(cp_url('alt-design/riffraff/all')).then(res => {
+                window.location.reload()
+            }).catch(err => {
+                // handle error
+            })
+        }
     }
   }
 })
