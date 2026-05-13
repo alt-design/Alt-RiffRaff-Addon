@@ -13,12 +13,13 @@ class FormSubmittedListener
 {
     public function handle(FormSubmitted $event): bool
     {
+        $apiKey = config('alt-riffraff.api_key', '');
         $apiEmail = config('alt-riffraff.api_email', '');
         $apiPassword = config('alt-riffraff.api_password', '');
         $apiAuthenticationEndpoint = config('alt-riffraff.api_authentication_endpoint', '');
         $apiEvaluateEndpoint = config('alt-riffraff.api_evaluate_endpoint', '');
 
-        if (empty($apiEmail) || empty($apiPassword)) {
+        if (empty($apiKey) && (empty($apiEmail) || empty($apiPassword))) {
             return true;
         }
 
@@ -34,18 +35,22 @@ class FormSubmittedListener
             return $carry . ' ' . $item;
         }, '');
 
-        $authResponse = Http::withHeaders([
-            'Accept' => 'application/json',
-        ])->post($apiAuthenticationEndpoint, [
-            'email' => $apiEmail,
-            'password' => $apiPassword,
-        ]);
+        if (! empty($apiKey)) {
+            $token = $apiKey;
+        } else {
+            $authResponse = Http::withHeaders([
+                'Accept' => 'application/json',
+            ])->post($apiAuthenticationEndpoint, [
+                'email' => $apiEmail,
+                'password' => $apiPassword,
+            ]);
 
-        if ($authResponse->failed()) {
-            return true;
+            if ($authResponse->failed()) {
+                return true;
+            }
+
+            $token = $authResponse->json()['data'];
         }
-
-        $token = $authResponse->json()['data'];
 
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . $token,
