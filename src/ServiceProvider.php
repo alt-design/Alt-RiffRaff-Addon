@@ -20,7 +20,6 @@ class ServiceProvider extends AddonServiceProvider
 
     protected $vite = [
         'input' => [
-            'resources/js/riffraff.js',
             'resources/css/riffraff.css',
         ],
         'publicDirectory' => 'resources/dist',

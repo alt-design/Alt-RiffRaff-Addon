@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace AltDesign\RiffRaff\Listeners;
 
+use AltDesign\RiffRaff\Support\RiffRaff;
 use Illuminate\Support\Facades\Http;
 use Statamic\Events\FormSubmitted;
 use Statamic\Facades\YAML;
@@ -13,19 +14,15 @@ class FormSubmittedListener
 {
     public function handle(FormSubmitted $event): bool
     {
-        $apiKey = config('alt-riffraff.api_key', '');
-        $apiEmail = config('alt-riffraff.api_email', '');
-        $apiPassword = config('alt-riffraff.api_password', '');
-        $apiAuthenticationEndpoint = config('alt-riffraff.api_authentication_endpoint', '');
-        $apiEvaluateEndpoint = config('alt-riffraff.api_evaluate_endpoint', '');
+        $token = RiffRaff::token();
 
-        if (empty($apiKey) && (empty($apiEmail) || empty($apiPassword))) {
+        if (empty($token)) {
             return true;
         }
 
         $formData = $event->submission->data()->all();
 
-        $formData = array_filter($formData, fn($item) => $item !== null);
+        $formData = array_filter($formData, fn ($item) => $item !== null);
 
         $formDataString = array_reduce($formData, function (string $carry, string|array $item): string {
             if (is_array($item)) {
@@ -35,27 +32,10 @@ class FormSubmittedListener
             return $carry . ' ' . $item;
         }, '');
 
-        if (! empty($apiKey)) {
-            $token = $apiKey;
-        } else {
-            $authResponse = Http::withHeaders([
-                'Accept' => 'application/json',
-            ])->post($apiAuthenticationEndpoint, [
-                'email' => $apiEmail,
-                'password' => $apiPassword,
-            ]);
-
-            if ($authResponse->failed()) {
-                return true;
-            }
-
-            $token = $authResponse->json()['data'];
-        }
-
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . $token,
             'Accept' => 'application/json',
-        ])->post($apiEvaluateEndpoint, [
+        ])->post(RiffRaff::url('api_evaluate_path'), [
             'content' => $formDataString,
         ]);
 
@@ -76,7 +56,7 @@ class FormSubmittedListener
 
             $submissionId = $event->submission->id();
 
-            $manager->disk()->put('content/riffraff/' . $submissionId . '.yaml', Yaml::dump([
+            $manager->disk()->put('content/riffraff/' . $submissionId . '.yaml', YAML::dump([
                 'id' => $submissionId,
                 'data' => $event->submission->data()->all(),
                 'spam_score' => $spamScore,

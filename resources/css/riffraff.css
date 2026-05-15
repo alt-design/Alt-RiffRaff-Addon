@@ -1,3 +1,8 @@
-/* we don't need base and compoenents since statamic provide those for free */
+/* we don't need base and components since statamic provides those for free */
 
-@import "tailwindcss/utilities";
+@layer theme, utilities;
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@source "../views/**/*.blade.php";

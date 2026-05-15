@@ -12,12 +12,18 @@
         }
     },
     "require": {
-        "statamic/cms": "^4.0|^5.17.0"
+        "statamic/cms": "^4.0|^5.0|^6.0"
     },
     "require-dev": {
         "orchestra/testbench": "^9.0",
         "laravel/pint": "^1.22",
-        "rector/rector": "^2.0"
+        "rector/rector": "^2.0",
+        "pestphp/pest": "^4.7"
+    },
+    "scripts": {
+        "lint": "pint",
+        "lint:test": "pint --test",
+        "test": "pest"
     },
     "config": {
         "allow-plugins": {
