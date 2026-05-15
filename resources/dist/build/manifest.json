@@ -1,12 +1,7 @@
 {
   "resources/css/riffraff.css": {
-    "file": "assets/riffraff-badbbefa.css",
-    "isEntry": true,
-    "src": "resources/css/riffraff.css"
-  },
-  "resources/js/riffraff.js": {
-    "file": "assets/riffraff-7155bcf7.js",
-    "isEntry": true,
-    "src": "resources/js/riffraff.js"
+    "file": "assets/riffraff-7_ZPTKUZ.css",
+    "src": "resources/css/riffraff.css",
+    "isEntry": true
   }
 }

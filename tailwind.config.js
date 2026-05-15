@@ -1,6 +1,5 @@
-module.exports = {
+export default {
     content: [
-        './resources/js/components/**/*.vue',
-        './resources/views/widgets/**/*.blade.php',
+        './resources/views/**/*.blade.php',
     ]
 }
