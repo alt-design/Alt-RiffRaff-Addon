@@ -78,7 +78,7 @@
                             <td class="px-4 py-3 text-gray-700">{{ $item['spam_score'] }} / {{ $item['threshold'] }}</td>
                             <td class="px-4 py-3 text-gray-700">{{ $item['preview'] }}</td>
                             <td class="px-4 py-3">
-                                <a class="text-blue-600 underline hover:text-blue-700" href="{{ cp_url('forms/'.$item['form_slug']) }}">
+                                <a class="text-blue-600 underline hover:text-blue-700" href="{{ cp_route('forms.show', $item['form_slug']) }}">
                                     {{ $item['form_slug'] }}
                                 </a>
                             </td>
