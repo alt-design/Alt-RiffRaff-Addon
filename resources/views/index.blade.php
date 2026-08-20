@@ -35,7 +35,7 @@
                         @endif
                     </div>
                     <div class="rr:text-right">
-                        <p class="rr:font-semibold {{ rr:$usageView['text_color_class'] }}">{{ $usageView['headline'] }}</p>
+                        <p class="rr:font-semibold {{ $usageView['text_color_class'] }}">{{ $usageView['headline'] }}</p>
                         @if ($usageView['resets_at_formatted'])
                             <p class="rr:text-xs rr:text-gray-600 rr:mt-0.5">Resets {{ $usageView['resets_at_formatted'] }}</p>
                         @endif
@@ -45,7 +45,7 @@
                 @unless ($usageView['is_unlimited'])
                     <div class="rr:mt-3">
                         <div class="rr:h-2 rr:w-full rr:bg-gray-200 rr:rounded-full rr:overflow-hidden">
-                            <div class="rr:h-full rr:rounded-full rr:transition-all {{ rr:$usageView['bar_color_class'] }}"
+                            <div class="rr:h-full rr:rounded-full rr:transition-all {{ $usageView['bar_color_class'] }}"
                                  style="{{ $usageView['bar_width_style'] }}"></div>
                         </div>
                         <p class="rr:text-xs rr:text-gray-600 rr:mt-1">{{ $usageView['percent_used'] }}% used</p>
