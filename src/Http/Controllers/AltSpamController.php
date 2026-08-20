@@ -90,15 +90,15 @@ class AltSpamController
         $isNearCap = ! $isUnlimited && ! $isOverQuota && $percentUsed >= 80;
 
         $barColorClass = match (true) {
-            $isOverQuota => 'bg-red-500',
-            $isNearCap => 'bg-orange-500',
-            default => 'bg-green-500',
+            $isOverQuota => 'rr:bg-red-500',
+            $isNearCap => 'rr:bg-orange-500',
+            default => 'rr:bg-green-500',
         };
 
         $textColorClass = match (true) {
-            $isOverQuota => 'text-red-600',
-            $isNearCap => 'text-orange-600',
-            default => 'text-gray-800',
+            $isOverQuota => 'rr:text-red-600',
+            $isNearCap => 'rr:text-orange-600',
+            default => 'rr:text-gray-800',
         };
 
         $used = number_format((int) ($usage['used'] ?? 0));
