@@ -1,8 +1,14 @@
-/* we don't need base and components since statamic provides those for free */
+/*
+ * All utilities are generated under an `rr:` prefix so nothing collides with
+ * the Statamic CP's own Tailwind (unprefixed utilities emitted here override
+ * the CP's container-query/responsive variants by source order — see the
+ * broken v6 assets uploader). Preflight/base is still skipped; the CP owns it.
+ */
 
 @layer theme, utilities;
 
-@import "tailwindcss/theme.css" layer(theme);
-@import "tailwindcss/utilities.css" layer(utilities);
+@import "tailwindcss/theme.css" layer(theme) prefix(rr);
+@import "tailwindcss/utilities.css" layer(utilities) prefix(rr);
 
 @source "../views/**/*.blade.php";
+@source "../../src/**/*.php";
