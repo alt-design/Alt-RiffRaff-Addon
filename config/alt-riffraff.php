@@ -10,4 +10,10 @@ return [
     'api_key' => env('ALT_RIFFRAFF_API_KEY', ''),
     'api_email' => env('ALT_RIFFRAFF_EMAIL', ''),
     'api_password' => env('ALT_RIFFRAFF_PASSWORD', ''),
+    'excluded_content_fields' => [
+        'page_uri',
+        'form_reference',
+        'enquiry_source',
+        'honeypot',
+    ],
 ];
