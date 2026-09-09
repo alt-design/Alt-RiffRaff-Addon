@@ -53,7 +53,7 @@
     "extra": {
         "statamic": {
             "name": "RiffRaff",
-            "description": "A Statamic addon for managing RiffRaff"
+            "description": "Holds suspected spam form submissions for review, with the reason for every point scored."
         },
         "laravel": {
             "providers": [
