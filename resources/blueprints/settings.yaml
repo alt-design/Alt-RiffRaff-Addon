@@ -1,0 +1,21 @@
+title: RiffRaff
+tabs:
+  main:
+    display: General
+    sections:
+      -
+        fields:
+          -
+            handle: api_key
+            field:
+              type: text
+              input_type: password
+              display: API key
+              instructions: 'Your Riff-Raff API key. If `ALT_RIFFRAFF_API_KEY` is set in the environment, that value is always used instead and this field is ignored. Note that this is saved to a file under `resources/addons`, which may be committed to version control, so prefer the environment variable for production secrets.'
+              instructions_position: above
+              validate:
+                - nullable
+              width: 50
+              listable: hidden
+              visibility: visible
+              replicator_preview: false

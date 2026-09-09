@@ -5,56 +5,238 @@ declare(strict_types=1);
 namespace AltDesign\RiffRaff\Http\Controllers;
 
 use AltDesign\RiffRaff\Support\RiffRaff;
+use AltDesign\RiffRaff\Support\TemplateGuard;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
+use Illuminate\View\View;
 use Statamic\Facades\Form;
 use Statamic\Facades\YAML;
-use Statamic\Fields\BlueprintRepository;
 use Statamic\Filesystem\Manager;
 use Statamic\Forms\Submission;
 
 class AltSpamController
 {
-    protected array $data = [];
+    private const STORAGE_PATH = 'content/riffraff';
 
-    public function index()
+    public function index(Request $request): View
     {
         $manager = new Manager;
 
-        if (! $manager->disk()->exists('content/riffraff')) {
-            $manager->disk()->makeDirectory('content/riffraff');
-        }
+        $submissions = $this->loadSubmissions($manager);
 
-        $allSubmissions = File::allFiles(app_path() . '/../content/riffraff');
-        $allSubmissions = collect($allSubmissions)->sortByDesc(function ($file) {
-            return $file->getCTime();
-        });
+        $search = trim((string) $request->query('q', ''));
+        $formFilter = trim((string) $request->query('form', ''));
+        $sort = $request->query('sort') === 'score' ? 'score' : 'recent';
 
-        foreach ($allSubmissions as $submission) {
-            $data = YAML::parse(File::get($submission));
-            $data['preview'] = $this->buildPreview($data['data'] ?? null);
-            $this->data[] = $data;
-        }
+        $filtered = $submissions
+            ->when($formFilter !== '', fn (Collection $items): Collection => $items->where('form_slug', $formFilter))
+            ->when($search !== '', fn (Collection $items): Collection => $items->filter(
+                fn (array $item): bool => $this->matchesSearch($item, $search)
+            ));
 
-        $blueprint = with(new BlueprintRepository)
-            ->setDirectory(
-                __DIR__ . '/../../../resources/blueprints'
-            )->find('riffraff');
-
-        $fields = $blueprint->fields()->addValues($this->data);
-
-        $fields = $fields->preProcess();
+        $sorted = $sort === 'score'
+            ? $filtered->sortByDesc(fn (array $item): int => $item['score_view']['diff'])
+            : $filtered->sortByDesc('flagged_at_timestamp');
 
         return view('alt-riffraff::index', [
-            'blueprint' => $blueprint->toPublishArray(),
-            'values' => $fields->values(),
-            'meta' => $fields->meta(),
-            'data' => $this->data,
+            'submissions' => $sorted->values(),
+            'totalCount' => $submissions->count(),
+            'formOptions' => $submissions->pluck('form_slug')->unique()->sort()->values(),
+            'search' => $search,
+            'formFilter' => $formFilter,
+            'sort' => $sort,
             'usageView' => $this->buildUsageView($this->fetchUsage()),
         ]);
+    }
+
+    public function show(string $id): View
+    {
+        $manager = new Manager;
+        $path = self::STORAGE_PATH . '/' . $id . '.yaml';
+
+        abort_unless($manager->disk()->exists($path), 404);
+
+        $data = YAML::parse((string) $manager->disk()->get($path));
+        $submission = $this->presentSubmission($data, $manager->disk()->lastModified($path));
+
+        return view('alt-riffraff::show', [
+            'submission' => $submission,
+            'form' => Form::find($submission['form_slug']),
+            'fields' => $this->humaniseFields($submission['data']),
+            'raw' => TemplateGuard::breakMustaches(json_encode($submission['data'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) ?: '{}'),
+        ]);
+    }
+
+    public function store(string $id): RedirectResponse
+    {
+        $manager = new Manager;
+        $path = self::STORAGE_PATH . '/' . $id . '.yaml';
+
+        if (! $manager->disk()->exists($path)) {
+            return redirect(cp_route('riffraff.index'))->with('error', 'That submission has already been dealt with.');
+        }
+
+        $submission = YAML::parse((string) $manager->disk()->get($path));
+        $form = Form::find($submission['form_slug'] ?? null);
+
+        if (! $form) {
+            return redirect(cp_route('riffraff.index'))->with('error', 'That form no longer exists, so the submission could not be released.');
+        }
+
+        (new Submission)->form($form)->data(collect($submission['data'] ?? []))->save();
+
+        $manager->disk()->delete($path);
+
+        return redirect(cp_route('riffraff.index'))->with('success', 'Submission released.');
+    }
+
+    public function destroy(string $id): RedirectResponse
+    {
+        $manager = new Manager;
+        $path = self::STORAGE_PATH . '/' . $id . '.yaml';
+
+        if ($manager->disk()->exists($path)) {
+            $manager->disk()->delete($path);
+        }
+
+        return redirect(cp_route('riffraff.index'))->with('success', 'Submission deleted.');
+    }
+
+    public function destroyAll(): RedirectResponse
+    {
+        $manager = new Manager;
+
+        foreach ($manager->disk()->getFiles(self::STORAGE_PATH) as $path) {
+            $manager->disk()->delete($path);
+        }
+
+        return redirect(cp_route('riffraff.index'))->with('success', 'All held submissions deleted.');
+    }
+
+    /**
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function loadSubmissions(Manager $manager): Collection
+    {
+        if (! $manager->disk()->exists(self::STORAGE_PATH)) {
+            $manager->disk()->makeDirectory(self::STORAGE_PATH);
+        }
+
+        return $manager->disk()->getFiles(self::STORAGE_PATH)
+            ->filter(fn (string $path): bool => Str::endsWith($path, '.yaml'))
+            ->map(function (string $path) use ($manager): array {
+                $data = YAML::parse((string) $manager->disk()->get($path));
+
+                return $this->presentSubmission($data, $manager->disk()->lastModified($path));
+            })
+            ->values();
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function presentSubmission(array $data, int $fileTimestamp): array
+    {
+        $score = (int) ($data['spam_score'] ?? 0);
+        $threshold = (int) ($data['threshold'] ?? 0);
+        $flaggedAt = $this->resolveFlaggedAt($data, $fileTimestamp);
+
+        return [
+            'id' => (string) ($data['id'] ?? ''),
+            'data' => (array) ($data['data'] ?? []),
+            'spam_score' => $score,
+            'threshold' => $threshold,
+            'reasons' => $this->presentReasons($data['reasons'] ?? []),
+            'form_slug' => (string) ($data['form_slug'] ?? ''),
+            'is_spam' => (bool) ($data['is_spam'] ?? true),
+            'preview' => TemplateGuard::breakMustaches($this->buildPreview($data['data'] ?? null)),
+            'score_view' => $this->buildScoreView($score, $threshold),
+            'flagged_at_human' => $flaggedAt->diffForHumans(),
+            'flagged_at_formatted' => $flaggedAt->format('j M Y, g:ia'),
+            'flagged_at_timestamp' => $flaggedAt->getTimestamp(),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function resolveFlaggedAt(array $data, int $fileTimestamp): Carbon
+    {
+        if (is_string($data['flagged_at'] ?? null)) {
+            try {
+                return Carbon::parse($data['flagged_at']);
+            } catch (\Exception) {
+            }
+        }
+
+        return Carbon::createFromTimestamp($fileTimestamp);
+    }
+
+    /**
+     * @return array{score: int, threshold: int, percent: int, diff: int, is_over: bool, margin_label: string}
+     */
+    private function buildScoreView(int $score, int $threshold): array
+    {
+        $safeThreshold = max($threshold, 1);
+        $percent = (int) round(min(100, max(0, $score / $safeThreshold * 100)));
+        $diff = $score - $threshold;
+
+        $marginLabel = match (true) {
+            $diff > 0 => $diff . ' over the threshold',
+            $diff < 0 => abs($diff) . ' under the threshold',
+            default => 'exactly on the threshold',
+        };
+
+        return [
+            'score' => $score,
+            'threshold' => $threshold,
+            'percent' => $percent,
+            'diff' => $diff,
+            'is_over' => $diff > 0,
+            'margin_label' => $marginLabel,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     */
+    private function matchesSearch(array $item, string $search): bool
+    {
+        $needle = Str::lower($search);
+
+        if (Str::contains(Str::lower($item['form_slug']), $needle)) {
+            return true;
+        }
+
+        if (Str::contains(Str::lower($item['preview']), $needle)) {
+            return true;
+        }
+
+        foreach (Arr::flatten($item['data']) as $value) {
+            if (is_string($value) && Str::contains(Str::lower($value), $needle)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function presentReasons(mixed $reasons): array
+    {
+        return collect((array) $reasons)
+            ->map(fn (mixed $reason): string => TemplateGuard::breakMustaches((string) $reason))
+            ->values()
+            ->all();
     }
 
     private function buildPreview(mixed $data): string
@@ -75,9 +257,48 @@ class AltSpamController
             return '';
         }
 
-        return mb_substr($source, 0, 50) . '...';
+        return mb_substr($source, 0, 100) . (mb_strlen($source) > 100 ? '...' : '');
     }
 
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<int, array{label: string, value: string, is_empty: bool}>
+     */
+    private function humaniseFields(array $data): array
+    {
+        return collect($data)
+            ->map(fn (mixed $value, string $handle): array => [
+                'label' => (string) Str::of($handle)->headline(),
+                'value' => TemplateGuard::breakMustaches($this->displayValue($value)),
+                'is_empty' => $this->isEmptyValue($value),
+            ])
+            ->values()
+            ->all();
+    }
+
+    private function displayValue(mixed $value): string
+    {
+        if (is_bool($value)) {
+            return $value ? 'Yes' : 'No';
+        }
+
+        if (is_array($value)) {
+            return collect($value)
+                ->map(fn (mixed $item): string => is_scalar($item) ? (string) $item : (json_encode($item) ?: ''))
+                ->implode(', ');
+        }
+
+        return (string) ($value ?? '');
+    }
+
+    private function isEmptyValue(mixed $value): bool
+    {
+        return $value === null || $value === '' || $value === [];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
     private function buildUsageView(?array $usage): ?array
     {
         if ($usage === null) {
@@ -162,75 +383,5 @@ class AltSpamController
                 return $response->json();
             }
         );
-    }
-
-    public function destroy(string $id): RedirectResponse
-    {
-        $manager = new Manager;
-
-        if ($id === 'all') {
-            if ($manager->disk()->exists('content/riffraff')) {
-                $files = $manager->disk()->getFiles('content/riffraff');
-
-                foreach ($files as $file) {
-                    $manager->disk()->delete($file);
-                }
-            }
-
-            return redirect()->route('riffraff.index')->with('success', 'All suspected spam deleted.');
-        }
-
-        if ($manager->disk()->exists('content/riffraff/' . $id . '.yaml')) {
-            $manager->disk()->delete('content/riffraff/' . $id . '.yaml');
-        }
-
-        return redirect()->route('riffraff.index')->with('success', 'Submission deleted.');
-    }
-
-    public function store(string $id): RedirectResponse
-    {
-        $manager = new Manager;
-
-        if (! $manager->disk()->exists('content/riffraff')) {
-            $manager->disk()->makeDirectory('content/riffraff');
-        }
-
-        $submission = File::get(app_path() . '/../content/riffraff/' . $id . '.yaml');
-        $submission = YAML::parse($submission);
-
-        $form = Form::find($submission['form_slug']);
-
-        $data = collect($submission['data']);
-
-        $submission = new Submission;
-        $submission->form($form)->data($data)->save();
-
-        if ($manager->disk()->exists('content/riffraff/' . $id . '.yaml')) {
-            $manager->disk()->delete('content/riffraff/' . $id . '.yaml');
-        }
-
-        return redirect()->route('riffraff.index')->with('success', 'Submission released.');
-    }
-
-    public function show(string $id)
-    {
-        $manager = new Manager;
-
-        if (! $manager->disk()->exists('content/riffraff')) {
-            $manager->disk()->makeDirectory('content/riffraff');
-        }
-
-        $submission = File::get(app_path() . '/../content/riffraff/' . $id . '.yaml');
-        $submission = YAML::parse($submission);
-
-        return view('alt-riffraff::show', [
-            'id' => $submission['id'],
-            'submission' => $submission,
-            'form' => Form::find($submission['form_slug']),
-            'data' => collect($submission['data']),
-            'score' => (int) $submission['spam_score'],
-            'threshold' => (int) $submission['threshold'],
-            'reasons' => $submission['reasons'] ?? [],
-        ]);
     }
 }
