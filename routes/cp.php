@@ -7,10 +7,13 @@ use Illuminate\Support\Facades\Route;
 
 Route::group([
     'namespace' => 'AltDesign\RiffRaff\Http\Controllers',
-    'middleware' => ['statamic.cp.authenticated'],
+    'middleware' => ['statamic.cp.authenticated', 'can:view riffraff'],
 ], function () {
     Route::get('/alt-design/riffraff', [AltSpamController::class, 'index'])
         ->name('riffraff.index');
+
+    Route::delete('/alt-design/riffraff', [AltSpamController::class, 'destroyAll'])
+        ->name('riffraff.destroyAll');
 
     Route::delete('/alt-design/riffraff/{id}', [AltSpamController::class, 'destroy'])
         ->name('riffraff.destroy');

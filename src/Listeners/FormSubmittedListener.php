@@ -77,6 +77,7 @@ class FormSubmittedListener
                 'reasons' => $reasons,
                 'form_slug' => $event->submission->form()->handle(),
                 'is_spam' => $isSpam,
+                'flagged_at' => now()->toIso8601String(),
             ]));
 
             return false;
