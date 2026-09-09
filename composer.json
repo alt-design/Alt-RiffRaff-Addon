@@ -1,6 +1,24 @@
 {
     "name": "alt-design/alt-riffraff",
+    "description": "Detects spam in Statamic form submissions using the RiffRaff API, holding suspected spam for review in the control panel.",
     "license": "MIT",
+    "keywords": [
+        "statamic",
+        "statamic-addon",
+        "spam",
+        "spam-protection",
+        "forms",
+        "riffraff"
+    ],
+    "authors": [
+        {
+            "name": "Alt Design",
+            "homepage": "https://alt-design.net"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/alt-design/Alt-RiffRaff-Addon/issues"
+    },
     "autoload": {
         "psr-4": {
             "AltDesign\\RiffRaff\\": "src"
@@ -12,10 +30,11 @@
         }
     },
     "require": {
-        "statamic/cms": "^4.0|^5.74|^6.26"
+        "php": "^8.2",
+        "statamic/cms": "^5.74|^6.26"
     },
     "require-dev": {
-        "orchestra/testbench": "^9.0",
+        "orchestra/testbench": "^10.8",
         "laravel/pint": "^1.22",
         "rector/rector": "^2.0",
         "pestphp/pest": "^4.7"
@@ -34,7 +53,7 @@
     "extra": {
         "statamic": {
             "name": "RiffRaff",
-            "description": "A Statamic addon for managing RiffRaff"
+            "description": "Holds suspected spam form submissions for review, with the reason for every point scored."
         },
         "laravel": {
             "providers": [
