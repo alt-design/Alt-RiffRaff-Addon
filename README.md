@@ -17,7 +17,13 @@ composer require the addon using the following command:
 composer require alt-design/alt-riffraff
 ```
 
-In your `.env` file, add your RiffRaff Credentials
+In your `.env` file, add your RiffRaff API key:
+
+``` bash
+ALT_RIFFRAFF_API_KEY=
+```
+
+This is the preferred way to authenticate. If you'd rather authenticate with an email and password instead, omit `ALT_RIFFRAFF_API_KEY` and set these instead:
 
 ``` bash
 ALT_RIFFRAFF_EMAIL=
@@ -28,6 +34,10 @@ ALT_RIFFRAFF_PASSWORD=
 
 1. The addon will automatically check all form submissions for spam.
 2. If a submission is detected as spam, it will be automatically "held" and you will be able to manage it from the "Review Spam" in the "Tools" section of the control panel.
+
+## Documentation
+
+See [DOCUMENTATION.md](DOCUMENTATION.md) for full configuration details, how held submissions work, and what data is sent to RiffRaff.
 
 ## Questions etc
 
