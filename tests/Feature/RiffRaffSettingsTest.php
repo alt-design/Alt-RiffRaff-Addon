@@ -5,6 +5,7 @@ declare(strict_types=1);
 use AltDesign\RiffRaff\Support\RiffRaff;
 use Illuminate\Support\Facades\File;
 use Statamic\Facades\Addon;
+use Statamic\Facades\User;
 
 beforeEach(function () {
     config([
@@ -41,4 +42,22 @@ it('prefers the environment variable over the control panel setting', function (
 
 it('returns null when neither the environment nor the control panel setting has a key', function () {
     expect(RiffRaff::apiKey())->toBeNull();
+});
+
+it('renders the addon settings screen in the control panel', function () {
+    $user = User::make()->makeSuper()->save();
+
+    $this->actingAs($user)
+        ->get(cp_route('addons.settings.edit', 'alt-riffraff'))
+        ->assertOk();
+});
+
+it('saves the api key from the addon settings screen', function () {
+    $user = User::make()->makeSuper()->save();
+
+    $this->actingAs($user)
+        ->patch(cp_route('addons.settings.update', 'alt-riffraff'), ['api_key' => 'saved-from-cp'])
+        ->assertOk();
+
+    expect(RiffRaff::apiKey())->toBe('saved-from-cp');
 });
