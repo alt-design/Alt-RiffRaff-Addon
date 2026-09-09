@@ -67,6 +67,7 @@
                         <th class="rr:text-left rr:px-4 rr:py-2 rr:font-medium rr:text-gray-600 rr:uppercase rr:text-xs rr:tracking-wider">Form Name</th>
                         <th class="rr:text-left rr:px-4 rr:py-2 rr:font-medium rr:text-gray-600 rr:uppercase rr:text-xs rr:tracking-wider">Spam Score</th>
                         <th class="rr:text-left rr:px-4 rr:py-2 rr:font-medium rr:text-gray-600 rr:uppercase rr:text-xs rr:tracking-wider">Preview</th>
+                        <th class="rr:text-left rr:px-4 rr:py-2 rr:font-medium rr:text-gray-600 rr:uppercase rr:text-xs rr:tracking-wider">Reasons</th>
                         <th class="rr:text-left rr:px-4 rr:py-2 rr:font-medium rr:text-gray-600 rr:uppercase rr:text-xs rr:tracking-wider">Form</th>
                         <th class="rr:px-4 rr:py-2"></th>
                     </tr>
@@ -77,6 +78,17 @@
                             <td class="rr:px-4 rr:py-3 rr:text-gray-900">{{ $item['data']['name'] ?? 'Unknown' }}</td>
                             <td class="rr:px-4 rr:py-3 rr:text-gray-700">{{ $item['spam_score'] }} / {{ $item['threshold'] }}</td>
                             <td class="rr:px-4 rr:py-3 rr:text-gray-700">{{ $item['preview'] }}</td>
+                            <td class="rr:px-4 rr:py-3 rr:text-gray-700">
+                                @if (! empty($item['reasons']))
+                                    <ul class="rr:list-disc rr:list-inside rr:space-y-0.5">
+                                        @foreach ($item['reasons'] as $reason)
+                                            <li>{{ $reason }}</li>
+                                        @endforeach
+                                    </ul>
+                                @else
+                                    <span class="rr:text-gray-400">None recorded</span>
+                                @endif
+                            </td>
                             <td class="rr:px-4 rr:py-3">
                                 <a class="rr:text-blue-600 rr:underline rr:hover:text-blue-700" href="{{ cp_route('forms.show', $item['form_slug']) }}">
                                     {{ $item['form_slug'] }}
@@ -109,7 +121,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="rr:px-4 rr:py-6 rr:text-center rr:text-sm rr:text-gray-500">No suspected spam submissions.</td>
+                            <td colspan="6" class="rr:px-4 rr:py-6 rr:text-center rr:text-sm rr:text-gray-500">No suspected spam submissions.</td>
                         </tr>
                     @endforelse
                 </tbody>

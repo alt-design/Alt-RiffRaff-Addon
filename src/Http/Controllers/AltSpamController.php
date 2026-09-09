@@ -230,6 +230,7 @@ class AltSpamController
             'data' => collect($submission['data']),
             'score' => (int) $submission['spam_score'],
             'threshold' => (int) $submission['threshold'],
+            'reasons' => $submission['reasons'] ?? [],
         ]);
     }
 }

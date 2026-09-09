@@ -17,6 +17,17 @@
             </p>
         </div>
 
+        @if (! empty($reasons))
+            <div class="rr:bg-white rr:border rr:border-gray-200 rr:rounded-md rr:shadow-sm rr:p-4 rr:mb-4">
+                <h2 class="rr:text-sm rr:font-semibold rr:text-gray-900 rr:mb-2">Why this was flagged</h2>
+                <ul class="rr:list-disc rr:list-inside rr:text-sm rr:text-gray-700 rr:space-y-1">
+                    @foreach ($reasons as $reason)
+                        <li>{{ $reason }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         <pre class="rr:bg-gray-900 rr:text-gray-100 rr:text-xs rr:p-4 rr:rounded-md rr:overflow-auto rr:mb-4"><code>{{ json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</code></pre>
 
         <div class="rr:flex rr:items-center rr:gap-2">
