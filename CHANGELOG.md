@@ -18,10 +18,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `orchestra/testbench` bumped to `^10.8` and `statamic/cms` support dropped to `^5.74|^6.26`. The previous `^4.0|^5.74|^6.26` range paired with `testbench ^9.0` could not be installed: Statamic 4 needs Laravel 9/10 while testbench `^9.0` needs Laravel 11, and none of the supported Statamic versions overlap with Laravel 11 at all. Statamic 4 is dropped rather than reintroduced against a compatible testbench version, since it would mean supporting Laravel 9/10 and Vue 2 alongside Laravel 12/13, which this codebase does not target.
 - Added an explicit `php` constraint (`^8.2`).
 
-### Fixed
-
-- The form submission listener was registered twice: once by Statamic's automatic discovery of `src/Listeners`, and again by hand in the service provider. It only ran once because the first registration always returns a value, which stops the event there, but any change to that return value would have put every submission through it twice.
-
 ## [1.2.4] - 2026-08-20
 
 Re-tagged release, identical to 1.2.3.

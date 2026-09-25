@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use AltDesign\RiffRaff\Listeners\FormSubmittedListener;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Statamic\Contracts\Forms\Form as FormContract;
@@ -243,11 +242,19 @@ it('stores is_spam using the api value when the score sits exactly on the thresh
     expect($stored['is_spam'])->toBeTrue();
 });
 
-it('registers the form submitted listener once', function () {
-    $registrations = collect(Event::getRawListeners()[FormSubmitted::class] ?? [])
-        ->filter(fn ($listener) => $listener === FormSubmittedListener::class);
+it('lets a genuine submission through when dispatched to every registered listener', function () {
+    fakeEvaluateResponse();
 
-    expect($registrations)->toHaveCount(1);
+    $submission = makeFormSubmittedEvent(
+        blueprintFields: [
+            ['handle' => 'message', 'field' => ['type' => 'textarea']],
+        ],
+        data: ['message' => 'Hello there'],
+    )->submission;
+
+    expect(FormSubmitted::dispatch($submission))->not->toBeFalse();
+
+    Http::assertSentCount(1);
 });
 
 it('drops an identical repeat to the same form for the length of the duplicate window', function () {

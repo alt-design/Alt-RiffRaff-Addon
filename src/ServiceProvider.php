@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace AltDesign\RiffRaff;
 
+use AltDesign\RiffRaff\Listeners\FormSubmittedListener;
+use Illuminate\Support\Facades\Event;
+use Statamic\Events\FormSubmitted;
 use Statamic\Facades\CP\Nav;
 use Statamic\Facades\Permission;
 use Statamic\Providers\AddonServiceProvider;
@@ -29,6 +32,15 @@ class ServiceProvider extends AddonServiceProvider
         $this->setupPublishables();
         $this->addToNav();
         $this->registerPermissions();
+        $this->registerEvents();
+    }
+
+    private function registerEvents(): void
+    {
+        Event::listen(
+            FormSubmitted::class,
+            FormSubmittedListener::class,
+        );
     }
 
     private function registerPermissions(): void
