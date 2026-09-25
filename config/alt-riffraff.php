@@ -16,4 +16,6 @@ return [
         'enquiry_source',
         'honeypot',
     ],
+    'duplicate_window' => env('ALT_RIFFRAFF_DUPLICATE_WINDOW', 60),
+    'duplicate_window_except' => [],
 ];

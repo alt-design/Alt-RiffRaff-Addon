@@ -10,12 +10,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Marketplace metadata: `description`, `authors`, `support` and `keywords` in `composer.json`, plus `DOCUMENTATION.md` and this changelog.
 - `excluded_content_fields` config option to control which form fields are excluded from the content sent to RiffRaff for evaluation, alongside the form's honeypot field.
+- Duplicate submissions are dropped. An identical submission to the same form within `duplicate_window` seconds (60 by default, set with `ALT_RIFFRAFF_DUPLICATE_WINDOW`) is stopped before the spam check, as a silent failure: nothing is stored or emailed, and the visitor still sees the success message. Forms that legitimately receive identical repeats can be listed under `duplicate_window_except`, and a window of `0` turns it off.
 
 ### Changed
 
 - The submitted email address and subject line, when they can be identified, are now sent to RiffRaff alongside the content, instead of being folded into the content string. This stops that metadata leaking into the evaluated content.
 - `orchestra/testbench` bumped to `^10.8` and `statamic/cms` support dropped to `^5.74|^6.26`. The previous `^4.0|^5.74|^6.26` range paired with `testbench ^9.0` could not be installed: Statamic 4 needs Laravel 9/10 while testbench `^9.0` needs Laravel 11, and none of the supported Statamic versions overlap with Laravel 11 at all. Statamic 4 is dropped rather than reintroduced against a compatible testbench version, since it would mean supporting Laravel 9/10 and Vue 2 alongside Laravel 12/13, which this codebase does not target.
 - Added an explicit `php` constraint (`^8.2`).
+
+### Fixed
+
+- The form submission listener was registered twice: once by Statamic's automatic discovery of `src/Listeners`, and again by hand in the service provider. It only ran once because the first registration always returns a value, which stops the event there, but any change to that return value would have put every submission through it twice.
 
 ## [1.2.4] - 2026-08-20
 
