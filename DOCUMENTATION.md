@@ -26,6 +26,7 @@ Configuration lives in `config/alt-riffraff.php` and is driven by the following 
 | `ALT_RIFFRAFF_EMAIL` | Only if not using an API key | The email address of your RiffRaff account. Used to log in and obtain a token on each request when no API key is set. |
 | `ALT_RIFFRAFF_PASSWORD` | Only if not using an API key | The password for the RiffRaff account above. |
 | `ALT_RIFFRAFF_BASE_URL` | No | Overrides the RiffRaff API base URL. Defaults to `https://api.riff-raff.dev`. Only needed for self-hosted or non-standard installations. |
+| `ALT_RIFFRAFF_DUPLICATE_WINDOW` | No | How many seconds an identical submission to the same form is treated as a duplicate and dropped. Defaults to `60`. Set it to `0` to turn duplicate checking off. See [Duplicate submissions](#duplicate-submissions). |
 
 ### Authentication
 
@@ -49,6 +50,24 @@ Every submitted field is concatenated into a single block of content and sent to
 ```
 
 Add the handle of any field you don't want included, for example internal tracking fields, hidden metadata, or anything that shouldn't leave the site. The form's configured honeypot field is always excluded automatically, in addition to anything listed here.
+
+## Duplicate submissions
+
+The same submission can arrive more than once, for example when a visitor clicks Submit again while a slow request is still running. RiffRaff drops a submission when an identical one (same form, same values) arrived within the last `duplicate_window` seconds, 60 by default. This happens before the spam check, so a repeat never reaches the RiffRaff API.
+
+A dropped duplicate is a silent failure: nothing is stored and no notification email is sent, but the visitor still sees the form's normal success message. Each one is logged as a warning, `Dropped duplicate form submission`, with the form handle.
+
+Duplicate checking runs whether or not RiffRaff credentials are configured, and it happens entirely on the site. Only a hash of the submission is kept in the site's cache, for the length of the window.
+
+Some forms legitimately receive identical submissions close together, such as a login or a lookup form. List their handles under `duplicate_window_except` so they are never checked:
+
+```php
+'duplicate_window_except' => [
+    'delivery_lookup',
+],
+```
+
+To turn duplicate checking off entirely, set `ALT_RIFFRAFF_DUPLICATE_WINDOW=0`.
 
 ## How held submissions work
 

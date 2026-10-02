@@ -22,6 +22,8 @@ beforeEach(function () {
             'enquiry_source',
             'honeypot',
         ],
+        'alt-riffraff.duplicate_window' => 60,
+        'alt-riffraff.duplicate_window_except' => [],
     ]);
 
     if (File::exists(base_path('content/riffraff'))) {
@@ -76,6 +78,20 @@ function fakeEvaluateResponse(array $overrides = []): void
             'reasons' => [],
         ], $overrides), 200),
     ]);
+}
+
+/**
+ * @param  array<string, mixed>  $data
+ */
+function submitForm(array $data = ['message' => 'Hello there'], string $formHandle = 'contact'): bool
+{
+    return (new FormSubmittedListener)->handle(makeFormSubmittedEvent(
+        blueprintFields: [
+            ['handle' => 'message', 'field' => ['type' => 'textarea']],
+        ],
+        data: $data,
+        formHandle: $formHandle,
+    ));
 }
 
 it('sends the value from a field configured as an email input', function () {
@@ -224,4 +240,84 @@ it('stores is_spam using the api value when the score sits exactly on the thresh
     $stored = YAML::parse(File::get(base_path('content/riffraff/boundary-submission.yaml')));
 
     expect($stored['is_spam'])->toBeTrue();
+});
+
+it('lets a genuine submission through when dispatched to every registered listener', function () {
+    fakeEvaluateResponse();
+
+    $submission = makeFormSubmittedEvent(
+        blueprintFields: [
+            ['handle' => 'message', 'field' => ['type' => 'textarea']],
+        ],
+        data: ['message' => 'Hello there'],
+    )->submission;
+
+    expect(FormSubmitted::dispatch($submission))->not->toBeFalse();
+
+    Http::assertSentCount(1);
+});
+
+it('drops an identical repeat to the same form for the length of the duplicate window', function () {
+    fakeEvaluateResponse();
+
+    expect(submitForm())->toBeTrue();
+
+    $this->travel(59)->seconds();
+
+    expect(submitForm())->toBeFalse();
+
+    Http::assertSentCount(1);
+});
+
+it('lets an identical repeat through once the duplicate window has passed', function () {
+    fakeEvaluateResponse();
+
+    submitForm();
+
+    $this->travel(61)->seconds();
+
+    expect(submitForm())->toBeTrue();
+
+    Http::assertSentCount(2);
+});
+
+it('lets a different submission to the same form through', function () {
+    fakeEvaluateResponse();
+
+    expect(submitForm(['message' => 'First enquiry']))->toBeTrue()
+        ->and(submitForm(['message' => 'Second enquiry']))->toBeTrue();
+});
+
+it('lets the same submission to a different form through', function () {
+    fakeEvaluateResponse();
+
+    expect(submitForm(formHandle: 'contact'))->toBeTrue()
+        ->and(submitForm(formHandle: 'newsletter'))->toBeTrue();
+});
+
+it('never drops a submission when the duplicate window is zero', function () {
+    config(['alt-riffraff.duplicate_window' => 0]);
+    fakeEvaluateResponse();
+
+    expect(submitForm())->toBeTrue()
+        ->and(submitForm())->toBeTrue();
+});
+
+it('never drops a repeat to a form listed in duplicate_window_except', function () {
+    config(['alt-riffraff.duplicate_window_except' => ['delivery_lookup']]);
+    fakeEvaluateResponse();
+
+    expect(submitForm(formHandle: 'delivery_lookup'))->toBeTrue()
+        ->and(submitForm(formHandle: 'delivery_lookup'))->toBeTrue();
+});
+
+it('drops an identical repeat even when no api credentials are configured', function () {
+    config([
+        'alt-riffraff.api_key' => '',
+        'alt-riffraff.api_email' => '',
+        'alt-riffraff.api_password' => '',
+    ]);
+
+    expect(submitForm())->toBeTrue()
+        ->and(submitForm())->toBeFalse();
 });

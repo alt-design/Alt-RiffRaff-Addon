@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Marketplace metadata: `description`, `authors`, `support` and `keywords` in `composer.json`, plus `DOCUMENTATION.md` and this changelog.
 - `excluded_content_fields` config option to control which form fields are excluded from the content sent to RiffRaff for evaluation, alongside the form's honeypot field.
+- Duplicate submissions are dropped. An identical submission to the same form within `duplicate_window` seconds (60 by default, set with `ALT_RIFFRAFF_DUPLICATE_WINDOW`) is stopped before the spam check, as a silent failure: nothing is stored or emailed, and the visitor still sees the success message. Forms that legitimately receive identical repeats can be listed under `duplicate_window_except`, and a window of `0` turns it off.
 
 ### Changed
 

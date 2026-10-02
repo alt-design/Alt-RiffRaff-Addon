@@ -6,7 +6,9 @@ namespace AltDesign\RiffRaff\Listeners;
 
 use AltDesign\RiffRaff\Support\RiffRaff;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Statamic\Events\FormSubmitted;
 use Statamic\Facades\YAML;
 use Statamic\Fields\Field;
@@ -16,6 +18,14 @@ class FormSubmittedListener
 {
     public function handle(FormSubmitted $event): bool
     {
+        if ($this->isDuplicate($event)) {
+            Log::warning('Dropped duplicate form submission', [
+                'form' => $event->submission->form()->handle(),
+            ]);
+
+            return false;
+        }
+
         $token = RiffRaff::token();
 
         if (empty($token)) {
@@ -84,6 +94,25 @@ class FormSubmittedListener
         }
 
         return true;
+    }
+
+    private function isDuplicate(FormSubmitted $event): bool
+    {
+        $window = (int) config('alt-riffraff.duplicate_window');
+
+        if ($window <= 0) {
+            return false;
+        }
+
+        $formHandle = $event->submission->form()->handle();
+
+        if (in_array($formHandle, (array) config('alt-riffraff.duplicate_window_except'), true)) {
+            return false;
+        }
+
+        $fingerprint = sha1(serialize($event->submission->data()->all()));
+
+        return ! Cache::add("riffraff-duplicate:{$formHandle}:{$fingerprint}", true, $window);
     }
 
     /**
