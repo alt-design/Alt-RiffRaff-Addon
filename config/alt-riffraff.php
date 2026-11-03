@@ -20,4 +20,5 @@ return [
     ],
     'duplicate_window' => env('ALT_RIFFRAFF_DUPLICATE_WINDOW', 60),
     'duplicate_window_except' => [],
+    'timing_max_age' => env('ALT_RIFFRAFF_TIMING_MAX_AGE', 3600),
 ];

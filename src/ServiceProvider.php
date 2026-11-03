@@ -7,10 +7,13 @@ namespace AltDesign\RiffRaff;
 use AltDesign\RiffRaff\Console\Commands\ConnectCommand;
 use AltDesign\RiffRaff\Console\Commands\StatusCommand;
 use AltDesign\RiffRaff\Listeners\FormSubmittedListener;
+use AltDesign\RiffRaff\Support\FormTiming;
+use Closure;
 use Illuminate\Support\Facades\Event;
 use Statamic\Events\FormSubmitted;
 use Statamic\Facades\CP\Nav;
 use Statamic\Facades\Permission;
+use Statamic\Forms\Tags as FormTags;
 use Statamic\Providers\AddonServiceProvider;
 use Statamic\Statamic;
 
@@ -40,6 +43,18 @@ class ServiceProvider extends AddonServiceProvider
         $this->addToNav();
         $this->registerPermissions();
         $this->registerEvents();
+        $this->registerFormTimingField();
+    }
+
+    private function registerFormTimingField(): void
+    {
+        FormTags::hook('before-close', function ($payload, Closure $next) {
+            if (is_array($payload)) {
+                $payload['html'] .= FormTiming::field($this->getForm());
+            }
+
+            return $next($payload);
+        });
     }
 
     private function registerEvents(): void

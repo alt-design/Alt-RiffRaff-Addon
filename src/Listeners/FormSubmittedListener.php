@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace AltDesign\RiffRaff\Listeners;
 
+use AltDesign\RiffRaff\Support\FormTiming;
 use AltDesign\RiffRaff\Support\RiffRaff;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
@@ -54,6 +55,15 @@ class FormSubmittedListener
 
         if ($subject = $this->resolveSubject($contentData)) {
             $payload['subject'] = $subject;
+        }
+
+        $secondsToSubmit = FormTiming::secondsSinceLoad(
+            request()->input(FormTiming::FIELD),
+            $event->submission->form()->handle(),
+        );
+
+        if ($secondsToSubmit !== null) {
+            $payload['seconds_to_submit'] = $secondsToSubmit;
         }
 
         $response = Http::withHeaders([

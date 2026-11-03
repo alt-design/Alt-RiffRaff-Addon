@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Added
+
+- Forms rendered with a `{{ form:create }}` tag pair now carry a hidden `_riffraff_loaded` input holding the time the form loaded, signed with the site's `APP_KEY`. On submission the addon verifies it and sends RiffRaff `seconds_to_submit`, so very fast submissions can be scored. A missing, altered or stale value sends nothing. No template changes are needed. A RiffRaff API without support for the field ignores it.
+- `timing_max_age` config option (`ALT_RIFFRAFF_TIMING_MAX_AGE`, 3600 seconds by default). A config file published before this release does not need it.
+
 ## [1.4.0] - 2026-11-03
 
 ### Added
