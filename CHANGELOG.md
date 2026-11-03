@@ -11,6 +11,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Forms rendered with a `{{ form:create }}` tag pair now carry a hidden `_riffraff_loaded` input holding the time the form loaded, signed with the site's `APP_KEY`. On submission the addon verifies it and sends RiffRaff `seconds_to_submit`, so very fast submissions can be scored. A missing, altered or stale value sends nothing. No template changes are needed. A RiffRaff API without support for the field ignores it.
 - `timing_max_age` config option (`ALT_RIFFRAFF_TIMING_MAX_AGE`, 3600 seconds by default). A config file published before this release does not need it.
 
+## [1.4.1] - 2026-11-03
+
+### Fixed
+
+- A form submission is let through unchecked when RiffRaff cannot be reached or does not answer within 10 seconds. Until now a connection failure stopped the submission with an error, and a slow answer held it for up to 30 seconds. Each time it happens a warning is logged, without the submission.
+
+### Security
+
+- Build dependencies updated with `npm audit fix` (vite, browserslist, nanoid, source-map-js, baseline-browser-mapping). These are only used to build the control panel styles; the shipped assets are unchanged.
+
 ## [1.4.0] - 2026-11-03
 
 ### Added

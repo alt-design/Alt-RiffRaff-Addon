@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use AltDesign\RiffRaff\Listeners\FormSubmittedListener;
 use AltDesign\RiffRaff\Support\FormTiming;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Statamic\Contracts\Forms\Form as FormContract;
 use Statamic\Contracts\Forms\Submission as SubmissionContract;
@@ -172,6 +173,48 @@ it('sends no timing and no honeypot field when there is no valid timestamp', fun
     'absent' => [null],
     'tampered' => ['1700000000.' . str_repeat('b', 64)],
 ]);
+
+it('renders nothing when RiffRaff has no credentials, without making a request', function () {
+    Http::fake();
+    config([
+        'alt-riffraff.api_key' => '',
+        'alt-riffraff.api_email' => '',
+        'alt-riffraff.api_password' => '',
+    ]);
+
+    expect(FormTiming::field('contact'))->toBe('');
+    Http::assertNothingSent();
+});
+
+it('renders the field when login credentials are configured, without making a request', function () {
+    Http::fake();
+    config([
+        'alt-riffraff.api_key' => '',
+        'alt-riffraff.api_email' => 'site@example.com',
+        'alt-riffraff.api_password' => 'secret',
+    ]);
+
+    expect(FormTiming::field('contact'))->toContain('name="_riffraff_loaded"');
+    Http::assertNothingSent();
+});
+
+it('sends no timing when the submission is not an HTTP request carrying the field', function () {
+    fakeCleanVerdict();
+    $this->app->instance('request', Request::create('/', 'GET'));
+
+    (new FormSubmittedListener)->handle(timedSubmission());
+
+    Http::assertSent(fn ($request) => ! isset($request['seconds_to_submit']));
+});
+
+it('sends no timing when the token was rendered for a different form handle', function () {
+    fakeCleanVerdict();
+    request()->merge([FormTiming::FIELD => loadedToken('newsletter')]);
+
+    (new FormSubmittedListener)->handle(timedSubmission());
+
+    Http::assertSent(fn ($request) => ! isset($request['seconds_to_submit']));
+});
 
 it('adds the timestamp field to a form rendered with the form tag', function () {
     $form = Form::make('contact')->title('Contact');

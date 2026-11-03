@@ -38,6 +38,8 @@ An API key is the preferred method of authentication. The addon looks for one in
 
 If none of these is configured, spam checking is skipped and all submissions are allowed through as normal.
 
+If RiffRaff answers with an error, cannot be reached, or does not answer within 10 seconds, the submission is let through unchecked rather than lost. A connection failure or timeout is logged as a warning, `RiffRaff could not be reached, so a form submission was let through unchecked`, without the submission's content.
+
 ### Connecting a site
 
 Run this on the site's server, from the site's directory:
@@ -127,7 +129,11 @@ The timing is left out, rather than scored, when:
 - the value is missing, altered, signed for another form, or in the future
 - the value is older than `timing_max_age` seconds (3600 by default, `ALT_RIFFRAFF_TIMING_MAX_AGE`)
 
+The field is not rendered at all while RiffRaff has no credentials (no API key and no login email and password), so a site that is not connected is unchanged.
+
 RiffRaff only ever scores a fast submission, so leaving the timing out can never turn a real enquiry into spam.
+
+The timing signal catches bots that post straight after the page loads. It is not a defence against a bot that fetches the form and waits before posting.
 
 ### Statically cached pages
 

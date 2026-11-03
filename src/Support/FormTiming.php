@@ -16,6 +16,10 @@ class FormTiming
      */
     public static function field(string $formHandle): string
     {
+        if (! RiffRaff::isConfigured()) {
+            return '';
+        }
+
         $token = self::token($formHandle, now()->getTimestamp());
 
         if ($token === null) {
