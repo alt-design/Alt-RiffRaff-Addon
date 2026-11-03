@@ -30,11 +30,72 @@ Configuration lives in `config/alt-riffraff.php` and is driven by the following 
 
 ### Authentication
 
-An API key is the preferred method of authentication. Generate one from your RiffRaff account and set it as `ALT_RIFFRAFF_API_KEY`.
+An API key is the preferred method of authentication. The addon looks for one in this order:
 
-If no API key is set, the addon falls back to email and password: it logs in against the RiffRaff API on each request using `ALT_RIFFRAFF_EMAIL` and `ALT_RIFFRAFF_PASSWORD` to obtain a token. This is kept for backwards compatibility with sites configured before API key support was added; new installs should use an API key.
+1. `ALT_RIFFRAFF_API_KEY` in the environment. When it is set, it always wins.
+2. The key saved in the addon settings, by `php please riffraff:connect` (see [Connecting a site](#connecting-a-site)) or in the control panel under the addon's settings. This needs Statamic 6.
+3. `ALT_RIFFRAFF_EMAIL` and `ALT_RIFFRAFF_PASSWORD`: the addon logs in against the RiffRaff API on each request to obtain a token. This is kept for sites configured before API key support was added; new installs should use an API key.
 
-If neither an API key nor a working email and password are configured, spam checking is silently skipped and all submissions are allowed through as normal.
+If none of these is configured, spam checking is skipped and all submissions are allowed through as normal.
+
+### Connecting a site
+
+Run this on the site's server, from the site's directory:
+
+```bash
+php please riffraff:connect "Acme website"
+```
+
+The name is how the site appears in RiffRaff, up to 100 characters. The command prints a code and a link to RiffRaff. A manager of your RiffRaff team opens the link, enters the code and approves it, and the command saves the key to the addon settings (`resources/addons/alt-riffraff.yaml`) and prints `Connected as Acme website`. The key itself is never printed, so it is safe to run where the output is kept. The code lasts 15 minutes.
+
+If a site with that name already exists in the team, approving the request can replace its key. To replace a key already saved on this site, run the command with `--replace`.
+
+#### Running it through Forge
+
+Forge's site Commands panel stops a command after 5 minutes, and does not show the output until the command finishes. Run it in two steps instead:
+
+1. `php please riffraff:connect "Acme website" --wait=0` prints the code and stops straight away.
+2. Approve the code in RiffRaff.
+3. `php please riffraff:connect --wait=0` picks up the approved request and saves the key.
+
+Running the command again always picks up a request that is still waiting, rather than asking for a new code, unless you give it a different name. `--wait` takes any number of seconds; without it, the command waits until the code expires.
+
+Picking a request up on a later run needs a cache that lasts between runs, such as the file, database or Redis store. The waiting request is kept encrypted with the site's `APP_KEY`, under a key unique to the site, so sites sharing one cache cannot see each other's. With the `array` or `null` store the command says so, and the code has to be approved while the command waits.
+
+`ALT_RIFFRAFF_BASE_URL` must use `https://`, since the key comes back over that connection. Plain `http://` is only accepted for `localhost` and `.test` addresses.
+
+#### When it refuses
+
+The command checks the site before asking RiffRaff for anything, and stops if saving the key would be unsafe or would not take effect:
+
+| It says | Why | What to do |
+| --- | --- | --- |
+| A key is already saved | Replacing a working key should be deliberate. | Run with `--replace`. |
+| `ALT_RIFFRAFF_API_KEY` is set | The environment always wins, so a saved key would never be used. | Remove it from the environment, or use the environment instead. |
+| Statamic's git automation covers the file and it is not in `.gitignore` | Statamic 6 tracks `resources/addons` by default and commits when addon settings are saved, so the key would be committed, and pushed if pushing is on. | Add `resources/addons/alt-riffraff.yaml` to the site's `.gitignore` and deploy. |
+| The file is tracked in git | The key would end up in a commit. | Remove the file from the repository and add it to `.gitignore`, then deploy. |
+| Could not check with git | Git failed, for example because the repository belongs to another user, so the command cannot tell whether the key would be committed. | Fix what git reports, or run with `--force` if you are sure. |
+| The site deploys with zero downtime | Each release starts from a fresh checkout, so the key would be gone after the next deploy. | Make `resources/addons` a shared path in Forge. See below first. |
+
+When the file is not in `.gitignore` but nothing on the server commits automatically, the command saves the key and warns you to add it.
+
+`--force` saves the key in every one of these cases. `--replace` only gets past the first, so it cannot save a key somewhere it would be committed or lost. The command does not edit `.gitignore` on the server itself, because an edited, tracked `.gitignore` can make the next deploy's `git pull` fail, and ignoring a file that is already tracked has no effect.
+
+Making `resources/addons` a shared path changes more than this addon:
+
+- A shared path starts empty. Copy the current `resources/addons` from the live release into it before the next deploy.
+- Every addon's settings in it stop coming from git. Settings for other addons committed under `resources/addons` no longer reach the server, and changes made on the server are no longer committed.
+- If Statamic's git automation is on, take `resources/addons` out of `paths` in `config/statamic/git.php` (publish it with `php artisan vendor:publish --tag=statamic` if the site has no copy), or git will see the shared directory's files as deleted.
+
+The git and zero downtime checks only apply when addon settings are stored as files. On Statamic 5, which has no addon settings, the command stops and points you at `ALT_RIFFRAFF_API_KEY`.
+
+### Checking the connection
+
+```bash
+php please riffraff:status
+```
+
+This reports where the key comes from (the environment, the addon settings, or the email and password login), whether RiffRaff accepts it, and the site, plan and usage it belongs to. It warns when a saved key is being ignored because `ALT_RIFFRAFF_API_KEY` is set. It never prints the key, and exits with an error when the site is not connected or the key does not work.
 
 ### Excluding fields from the content sent to RiffRaff
 
@@ -99,5 +160,7 @@ The addon only sends data to the RiffRaff API (`ALT_RIFFRAFF_BASE_URL`, `https:/
 - **On every form submission** (unless spam checking is skipped due to missing credentials): the concatenated content of all submitted fields except those in `excluded_content_fields` and the form's honeypot field, plus, if they can be identified from the submission, the sender's email address and a subject line.
 - **When authenticating with email and password** (only if no API key is configured): the configured `ALT_RIFFRAFF_EMAIL` and `ALT_RIFFRAFF_PASSWORD` are sent to the RiffRaff login endpoint to obtain a token.
 - **When viewing the RiffRaff control panel page**: a request is made to RiffRaff's usage endpoint to display how much of your plan's quota has been used. No site or submission data is sent with this request.
+- **When running `riffraff:connect`**: the site name you give it, then a code RiffRaff issued, every few seconds until the request is approved, denied or expires.
+- **When running `riffraff:status`**: the same usage request as the control panel page.
 
 No data is sent anywhere else, and no data leaves the site for form submissions that are not evaluated (for example, when no credentials are configured).

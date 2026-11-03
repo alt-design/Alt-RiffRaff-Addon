@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace AltDesign\RiffRaff;
 
+use AltDesign\RiffRaff\Console\Commands\ConnectCommand;
+use AltDesign\RiffRaff\Console\Commands\StatusCommand;
 use AltDesign\RiffRaff\Listeners\FormSubmittedListener;
 use Illuminate\Support\Facades\Event;
 use Statamic\Events\FormSubmitted;
@@ -16,6 +18,11 @@ class ServiceProvider extends AddonServiceProvider
 {
     protected $routes = [
         'cp' => __DIR__ . '/../routes/cp.php',
+    ];
+
+    protected $commands = [
+        ConnectCommand::class,
+        StatusCommand::class,
     ];
 
     protected $vite = [

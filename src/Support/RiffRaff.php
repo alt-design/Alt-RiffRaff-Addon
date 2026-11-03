@@ -11,10 +11,14 @@ class RiffRaff
 {
     private const ADDON_ID = 'alt-design/alt-riffraff';
 
-    public static function url(string $pathConfigKey): string
+    /**
+     * The default path covers a config file published before the path was
+     * added, since a published config file never gains new keys.
+     */
+    public static function url(string $pathConfigKey, ?string $defaultPath = null): string
     {
         $base = rtrim((string) config('alt-riffraff.api_base_url'), '/');
-        $path = '/' . ltrim((string) config('alt-riffraff.' . $pathConfigKey), '/');
+        $path = '/' . ltrim((string) config('alt-riffraff.' . $pathConfigKey, $defaultPath), '/');
 
         return $base . $path;
     }
@@ -45,7 +49,7 @@ class RiffRaff
         return self::apiKeyFromSettings();
     }
 
-    private static function apiKeyFromSettings(): ?string
+    public static function apiKeyFromSettings(): ?string
     {
         $addon = Addon::get(self::ADDON_ID);
 

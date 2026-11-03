@@ -17,13 +17,21 @@ composer require the addon using the following command:
 composer require alt-design/alt-riffraff
 ```
 
-In your `.env` file, add your RiffRaff API key:
+Then connect the site to RiffRaff by running this on the server (Statamic 6):
+
+``` bash
+php please riffraff:connect "Acme website"
+```
+
+It prints a code. A manager of your RiffRaff team enters it in the RiffRaff dashboard, and the key is saved to the addon settings without anyone copying it. Check it worked with `php please riffraff:status`. See [Connecting a site](DOCUMENTATION.md#connecting-a-site) for running it through Forge and what to do if it refuses.
+
+Alternatively, add a key to your `.env` file, which always takes priority over a saved one:
 
 ``` bash
 ALT_RIFFRAFF_API_KEY=
 ```
 
-This is the preferred way to authenticate. If you'd rather authenticate with an email and password instead, omit `ALT_RIFFRAFF_API_KEY` and set these instead:
+If you'd rather authenticate with an email and password, omit the key and set these instead:
 
 ``` bash
 ALT_RIFFRAFF_EMAIL=
