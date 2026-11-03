@@ -13,4 +13,5 @@ enum PollStatus
     case Expired;
     case Unrecognised;
     case Unavailable;
+    case Failed;
 }

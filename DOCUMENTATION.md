@@ -48,7 +48,7 @@ php please riffraff:connect "Acme website"
 
 The name is how the site appears in RiffRaff, up to 100 characters. The command prints a code and a link to RiffRaff. A manager of your RiffRaff team opens the link, enters the code and approves it, and the command saves the key to the addon settings (`resources/addons/alt-riffraff.yaml`) and prints `Connected as Acme website`. The key itself is never printed, so it is safe to run where the output is kept. The code lasts 15 minutes.
 
-If a site with that name already exists in the team, approving the request can replace its key.
+If a site with that name already exists in the team, approving the request can replace its key. To replace a key already saved on this site, run the command with `--replace`.
 
 #### Running it through Forge
 
@@ -60,19 +60,32 @@ Forge's site Commands panel stops a command after 5 minutes, and does not show t
 
 Running the command again always picks up a request that is still waiting, rather than asking for a new code, unless you give it a different name. `--wait` takes any number of seconds; without it, the command waits until the code expires.
 
+Picking a request up on a later run needs a cache that lasts between runs, such as the file, database or Redis store. The waiting request is kept encrypted with the site's `APP_KEY`, under a key unique to the site, so sites sharing one cache cannot see each other's. With the `array` or `null` store the command says so, and the code has to be approved while the command waits.
+
+`ALT_RIFFRAFF_BASE_URL` must use `https://`, since the key comes back over that connection. Plain `http://` is only accepted for `localhost` and `.test` addresses.
+
 #### When it refuses
 
 The command checks the site before asking RiffRaff for anything, and stops if saving the key would be unsafe or would not take effect:
 
 | It says | Why | What to do |
 | --- | --- | --- |
-| A key is already saved | Replacing a working key should be deliberate. | Run with `--force`. |
+| A key is already saved | Replacing a working key should be deliberate. | Run with `--replace`. |
 | `ALT_RIFFRAFF_API_KEY` is set | The environment always wins, so a saved key would never be used. | Remove it from the environment, or use the environment instead. |
-| Statamic's git automation covers the file | Statamic 6 tracks `resources/addons` and commits when addon settings are saved, so the key would be committed, and pushed if pushing is on. | Take `resources/addons` out of `paths` in `config/statamic/git.php`. |
+| Statamic's git automation covers the file and it is not in `.gitignore` | Statamic 6 tracks `resources/addons` by default and commits when addon settings are saved, so the key would be committed, and pushed if pushing is on. | Add `resources/addons/alt-riffraff.yaml` to the site's `.gitignore` and deploy. |
 | The file is tracked in git | The key would end up in a commit. | Remove the file from the repository and add it to `.gitignore`, then deploy. |
-| The site deploys with zero downtime | Each release starts from a fresh checkout, so the key would be gone after the next deploy. | Add `resources/addons` to the site's shared paths in Forge. A shared path starts empty, so copy the current `resources/addons` into it first, and note that settings committed under it will no longer reach the server. |
+| Could not check with git | Git failed, for example because the repository belongs to another user, so the command cannot tell whether the key would be committed. | Fix what git reports, or run with `--force` if you are sure. |
+| The site deploys with zero downtime | Each release starts from a fresh checkout, so the key would be gone after the next deploy. | Make `resources/addons` a shared path in Forge. See below first. |
 
-`--force` saves the key in every one of these cases. The command does not edit `.gitignore` on the server itself, because an edited, tracked `.gitignore` can make the next deploy's `git pull` fail, and ignoring a file that is already tracked has no effect.
+When the file is not in `.gitignore` but nothing on the server commits automatically, the command saves the key and warns you to add it.
+
+`--force` saves the key in every one of these cases. `--replace` only gets past the first, so it cannot save a key somewhere it would be committed or lost. The command does not edit `.gitignore` on the server itself, because an edited, tracked `.gitignore` can make the next deploy's `git pull` fail, and ignoring a file that is already tracked has no effect.
+
+Making `resources/addons` a shared path changes more than this addon:
+
+- A shared path starts empty. Copy the current `resources/addons` from the live release into it before the next deploy.
+- Every addon's settings in it stop coming from git. Settings for other addons committed under `resources/addons` no longer reach the server, and changes made on the server are no longer committed.
+- If Statamic's git automation is on, take `resources/addons` out of `paths` in `config/statamic/git.php` (publish it with `php artisan vendor:publish --tag=statamic` if the site has no copy), or git will see the shared directory's files as deleted.
 
 The git and zero downtime checks only apply when addon settings are stored as files. On Statamic 5, which has no addon settings, the command stops and points you at `ALT_RIFFRAFF_API_KEY`.
 

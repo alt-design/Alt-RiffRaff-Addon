@@ -11,6 +11,7 @@ final class PollResult
         public readonly ?int $interval = null,
         #[\SensitiveParameter] public readonly ?string $key = null,
         public readonly ?string $site = null,
+        public readonly ?string $message = null,
     ) {}
 
     public static function of(PollStatus $status): self
@@ -26,5 +27,10 @@ final class PollResult
     public static function approved(#[\SensitiveParameter] string $key, string $site): self
     {
         return new self(PollStatus::Approved, key: $key, site: $site);
+    }
+
+    public static function failed(string $message): self
+    {
+        return new self(PollStatus::Failed, message: $message);
     }
 }

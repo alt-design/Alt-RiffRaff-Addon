@@ -4,17 +4,21 @@ declare(strict_types=1);
 
 namespace AltDesign\RiffRaff\Connect;
 
+use Illuminate\Cache\ArrayStore;
+use Illuminate\Cache\NullStore;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Crypt;
+use Throwable;
 
 /**
  * A request for a key that is waiting for a team manager to approve it. It is
- * kept in the cache until it expires, so running the command again picks up
- * the same code instead of asking for a new one.
+ * kept in the cache, encrypted, until it expires, so running the command
+ * again picks up the same code instead of asking for a new one.
  */
 final class PendingConnection
 {
-    private const CACHE_KEY = 'alt-riffraff.connect.pending';
+    private const CACHE_KEY_PREFIX = 'alt-riffraff.connect.pending.';
 
     public function __construct(
         public readonly string $siteName,
@@ -27,25 +31,45 @@ final class PendingConnection
 
     public static function current(): ?self
     {
-        $stored = Cache::get(self::CACHE_KEY);
-
-        if (! is_array($stored)) {
+        try {
+            $stored = Cache::get(self::cacheKey());
+            $payload = is_string($stored) ? Crypt::decrypt($stored) : null;
+        } catch (Throwable) {
             return null;
         }
 
-        $pending = self::fromArray($stored);
+        $pending = is_array($payload) ? self::fromArray($payload) : null;
 
         return $pending === null || $pending->hasExpired() ? null : $pending;
     }
 
     public static function forget(): void
     {
-        Cache::forget(self::CACHE_KEY);
+        try {
+            Cache::forget(self::cacheKey());
+        } catch (Throwable) {
+            return;
+        }
     }
 
-    public function remember(): void
+    /**
+     * Whether a later run of the command will be able to pick this request up.
+     */
+    public function remember(): bool
     {
-        Cache::put(self::CACHE_KEY, $this->toArray(), Carbon::createFromTimestamp($this->expiresAt));
+        if (self::cacheForgetsBetweenRuns()) {
+            return false;
+        }
+
+        try {
+            return Cache::put(
+                self::cacheKey(),
+                Crypt::encrypt($this->toArray()),
+                Carbon::createFromTimestamp($this->expiresAt),
+            );
+        } catch (Throwable) {
+            return false;
+        }
     }
 
     public function withInterval(int $interval): self
@@ -63,6 +87,28 @@ final class PendingConnection
     public function hasExpired(): bool
     {
         return Carbon::now()->getTimestamp() >= $this->expiresAt;
+    }
+
+    private static function cacheForgetsBetweenRuns(): bool
+    {
+        try {
+            $store = Cache::getStore();
+        } catch (Throwable) {
+            return true;
+        }
+
+        return $store instanceof ArrayStore || $store instanceof NullStore;
+    }
+
+    /**
+     * Unique to this site and RiffRaff installation, because several sites on
+     * one server can share a cache store and key prefix.
+     */
+    private static function cacheKey(): string
+    {
+        $site = base_path() . '|' . config('alt-riffraff.api_base_url');
+
+        return self::CACHE_KEY_PREFIX . substr(hash('sha256', $site), 0, 32);
     }
 
     /**

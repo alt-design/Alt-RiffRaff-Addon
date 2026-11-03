@@ -185,3 +185,23 @@ it('copes with a usage reply that has no plan or usage figures', function () {
         ->and($output)->toContain('None')
         ->and($output)->toContain('Unknown');
 });
+
+it('says when RiffRaff cannot be reached to sign in', function () {
+    config(['alt-riffraff.api_email' => 'site@example.test', 'alt-riffraff.api_password' => 'secret-password']);
+    Http::fake([LOGIN_URL => Http::failedConnection()]);
+
+    [$exitCode, $output] = status();
+
+    expect($exitCode)->toBe(1)
+        ->and($output)->toContain('Could not reach RiffRaff at https://api.riff-raff.test.')
+        ->and($output)->not->toContain('secret-password');
+});
+
+it('suggests replacing a key RiffRaff no longer accepts', function () {
+    config(['alt-riffraff.api_key' => '17|revoked-key']);
+    Http::fake([USAGE_URL => Http::response(['message' => 'Unauthenticated.'], 401)]);
+
+    [, $output] = status();
+
+    expect($output)->toContain('--replace');
+});

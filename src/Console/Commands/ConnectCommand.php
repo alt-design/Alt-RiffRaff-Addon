@@ -14,6 +14,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Sleep;
 use Statamic\Console\RunsInPlease;
+use Symfony\Component\Console\Formatter\OutputFormatter;
 use Throwable;
 
 /**
@@ -31,6 +32,7 @@ class ConnectCommand extends Command
     protected $signature = 'statamic:riffraff:connect
         {name? : What to call this site in RiffRaff}
         {--wait= : Seconds to wait for approval before stopping. Defaults to waiting until the code expires}
+        {--replace : Replace a key already saved in the addon settings}
         {--force : Save the key even where the command would normally refuse}';
 
     protected $description = 'Connect this site to RiffRaff by approving a code in the RiffRaff dashboard';
@@ -39,6 +41,12 @@ class ConnectCommand extends Command
     {
         if (! $storage->canSave()) {
             $this->components->error('Saving a key needs addon settings, which this version of Statamic does not have. Set ALT_RIFFRAFF_API_KEY in the environment instead.');
+
+            return self::FAILURE;
+        }
+
+        if (! $flow->hasSecureConnection()) {
+            $this->components->error('ALT_RIFFRAFF_BASE_URL must start with https://, because the key comes back over this connection.');
 
             return self::FAILURE;
         }
@@ -52,10 +60,12 @@ class ConnectCommand extends Command
         }
 
         if (! $this->safeToSave($storage)) {
+            $this->line('Nothing was requested from RiffRaff.');
+
             return self::FAILURE;
         }
 
-        $pending = $this->pendingConnection($flow);
+        $pending = $this->pendingConnection($flow, $wait === '0');
 
         if ($pending === null) {
             return self::FAILURE;
@@ -66,39 +76,45 @@ class ConnectCommand extends Command
 
     private function safeToSave(KeyStorage $storage): bool
     {
-        $problems = $storage->problems();
+        $force = (bool) $this->option('force');
 
-        if ($problems === []) {
-            return true;
+        if ($storage->hasSavedKey() && ! $force && ! $this->option('replace')) {
+            $this->components->error('A key is already saved in the addon settings. Run with --replace to replace it.');
+
+            return false;
         }
 
-        if ($this->option('force')) {
+        ['problems' => $problems, 'warnings' => $warnings] = $storage->assess();
+
+        if ($problems !== [] && ! $force) {
             foreach ($problems as $problem) {
-                $this->components->warn('Going ahead because of --force: ' . $problem);
+                $this->components->error($this->escape($problem));
             }
 
-            return true;
+            return false;
         }
 
         foreach ($problems as $problem) {
-            $this->components->error($problem);
+            $this->components->warn('Going ahead because of --force: ' . $this->escape($problem));
         }
 
-        $this->line('Nothing was requested from RiffRaff.');
+        foreach ($warnings as $warning) {
+            $this->components->warn($this->escape($warning));
+        }
 
-        return false;
+        return true;
     }
 
     /**
      * @return array{connection: PendingConnection, resumed: bool}|null
      */
-    private function pendingConnection(DeviceFlow $flow): ?array
+    private function pendingConnection(DeviceFlow $flow, bool $finishingLater): ?array
     {
         $name = $this->siteName();
         $current = PendingConnection::current();
 
         if ($current !== null && ($name === null || $name === $current->siteName)) {
-            $this->line("Picking up the request already waiting for approval for \"{$current->siteName}\".");
+            $this->line('Picking up the request already waiting for approval for "' . $this->escape($current->siteName) . '".');
             $this->showCode($current);
 
             return ['connection' => $current, 'resumed' => true];
@@ -119,12 +135,17 @@ class ConnectCommand extends Command
         try {
             $connection = $flow->requestCode($name);
         } catch (ConnectionFailed $e) {
-            $this->components->error($e->getMessage());
+            $this->components->error($this->escape($e->getMessage()));
 
             return null;
         }
 
-        $connection->remember();
+        if (! $connection->remember()) {
+            $this->components->warn($finishingLater
+                ? "This site's cache cannot keep the request until the next run, so running the command again will ask for a new code. Run it without --wait=0 and approve the code while it waits."
+                : "This site's cache cannot keep the request until the next run, so approve the code while this command waits.");
+        }
+
         $this->showCode($connection);
 
         return ['connection' => $connection, 'resumed' => false];
@@ -143,8 +164,8 @@ class ConnectCommand extends Command
         $this->newLine();
         $this->line('A manager of your RiffRaff team needs to approve this site:');
         $this->newLine();
-        $this->line("  1. Go to {$connection->verificationUri}");
-        $this->line("  2. Enter the code <options=bold>{$connection->userCode}</>");
+        $this->line('  1. Go to ' . $this->escape($connection->verificationUri));
+        $this->line('  2. Enter the code <options=bold>' . $this->escape($connection->userCode) . '</>');
         $this->newLine();
         $this->line('The code expires at ' . $this->expiryTime($connection) . '.');
     }
@@ -189,7 +210,7 @@ class ConnectCommand extends Command
             Sleep::for($connection->interval)->seconds();
         }
 
-        if ($wait === null || $connection->hasExpired()) {
+        if ($connection->hasExpired()) {
             PendingConnection::forget();
             $this->components->error('The code expired before it was approved. Run the command again for a new code.');
 
@@ -213,6 +234,7 @@ class ConnectCommand extends Command
             PollStatus::Denied => $this->abandon('The request was denied in RiffRaff.'),
             PollStatus::Expired => $this->abandon('The code expired before it was approved. Run the command again for a new code.'),
             PollStatus::Unrecognised => $this->abandon('RiffRaff no longer recognises this request. It may already have been collected. Run php please riffraff:status to check, or run this command again for a new code.'),
+            PollStatus::Failed => $this->abandon('RiffRaff refused to finish connecting: ' . $this->escape((string) $result->message)),
             default => null,
         };
     }
@@ -220,16 +242,23 @@ class ConnectCommand extends Command
     private function saveKey(PollResult $result, KeyStorage $storage): int
     {
         PendingConnection::forget();
+        $unsaved = 'Fix that, then run the command again for a new key, and revoke the unused one for this site under Settings, Sites in RiffRaff.';
 
         try {
-            $storage->save((string) $result->key);
+            $saved = $storage->save((string) $result->key);
         } catch (Throwable $e) {
-            $this->components->error('RiffRaff approved the request, but the key could not be saved (' . $e::class . '). Fix that, then run the command again for a new key: collecting a new key replaces this one.');
+            $this->components->error('RiffRaff approved the request, but the key could not be saved (' . $e::class . '). ' . $unsaved);
 
             return self::FAILURE;
         }
 
-        $this->components->info("Connected as {$result->site}.");
+        if (! $saved) {
+            $this->components->error('RiffRaff approved the request, but something on this site stopped the addon settings being saved. ' . $unsaved);
+
+            return self::FAILURE;
+        }
+
+        $this->components->info('Connected as ' . $this->escape((string) $result->site) . '.');
 
         return self::SUCCESS;
     }
@@ -245,5 +274,14 @@ class ConnectCommand extends Command
     private function expiryTime(PendingConnection $connection): string
     {
         return Carbon::createFromTimestamp($connection->expiresAt, config('app.timezone'))->format('H:i');
+    }
+
+    /**
+     * Text that came from RiffRaff or git, made safe to print: no console
+     * formatting tags and no control characters.
+     */
+    private function escape(string $text): string
+    {
+        return OutputFormatter::escape((string) preg_replace('/\p{C}/u', '', $text));
     }
 }

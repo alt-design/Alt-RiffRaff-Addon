@@ -22,6 +22,8 @@ final class DeviceFlow
 
     private const TIMEOUT_SECONDS = 15;
 
+    private const USER_CODE_PATTERN = '/^[A-Za-z0-9]{2,16}(-[A-Za-z0-9]{2,16})?$/';
+
     /**
      * @throws ConnectionFailed
      */
@@ -37,7 +39,9 @@ final class DeviceFlow
         }
 
         if ($response->status() === 429) {
-            throw new ConnectionFailed('Too many requests from this server are already waiting for approval. Approve or deny them in RiffRaff, or wait for them to expire, then try again.');
+            throw new ConnectionFailed($response->json('error') === 'slow_down'
+                ? 'Too many requests from this server are already waiting for approval. Approve or deny them in RiffRaff, or wait for them to expire, then try again.'
+                : 'RiffRaff is limiting requests from this server. Wait a minute, then try again.');
         }
 
         if ($response->failed()) {
@@ -45,7 +49,7 @@ final class DeviceFlow
         }
 
         return $this->pendingFrom($response, $siteName)
-            ?? throw new ConnectionFailed('RiffRaff sent a reply this version of the addon does not understand. Updating the addon may help.');
+            ?? throw new ConnectionFailed('RiffRaff sent a reply this version of the addon does not understand, or a link that is not on RiffRaff\'s own address. Check ALT_RIFFRAFF_BASE_URL, and update the addon.');
     }
 
     public function poll(PendingConnection $pending): PollResult
@@ -67,13 +71,17 @@ final class DeviceFlow
             return PollResult::of(PollStatus::Unavailable);
         }
 
+        if ($response->status() === 429) {
+            return PollResult::slowDown($this->retryAfter($response) ?? $pending->interval + 5);
+        }
+
         return match ($response->json('error')) {
             'authorization_pending' => PollResult::of(PollStatus::Pending),
             'slow_down' => PollResult::slowDown($this->slowerInterval($response, $pending)),
             'access_denied' => PollResult::of(PollStatus::Denied),
             'expired_token' => PollResult::of(PollStatus::Expired),
             'invalid_grant' => PollResult::of(PollStatus::Unrecognised),
-            default => PollResult::of(PollStatus::Unavailable),
+            default => PollResult::failed($this->describeFailure($response)),
         };
     }
 
@@ -82,9 +90,25 @@ final class DeviceFlow
         return rtrim((string) config('alt-riffraff.api_base_url'), '/');
     }
 
+    /**
+     * The key comes back over this connection, so it has to be HTTPS, other
+     * than for a RiffRaff running on the developer's own machine.
+     */
+    public function hasSecureConnection(): bool
+    {
+        $scheme = strtolower((string) parse_url($this->baseUrl(), PHP_URL_SCHEME));
+        $host = strtolower((string) parse_url($this->baseUrl(), PHP_URL_HOST));
+
+        if ($scheme === 'https') {
+            return true;
+        }
+
+        return $scheme === 'http' && ($host === 'localhost' || $host === '127.0.0.1' || str_ends_with($host, '.test'));
+    }
+
     private function http(): PendingRequest
     {
-        return Http::acceptJson()->asJson()->timeout(self::TIMEOUT_SECONDS);
+        return Http::acceptJson()->asJson()->withoutRedirecting()->timeout(self::TIMEOUT_SECONDS);
     }
 
     private function pendingFrom(Response $response, string $siteName): ?PendingConnection
@@ -105,6 +129,10 @@ final class DeviceFlow
             return null;
         }
 
+        if (preg_match(self::USER_CODE_PATTERN, $body['user_code']) !== 1 || ! $this->isRiffRaffAddress($body['verification_uri'])) {
+            return null;
+        }
+
         return new PendingConnection(
             siteName: $siteName,
             deviceCode: $body['device_code'],
@@ -113,6 +141,29 @@ final class DeviceFlow
             interval: is_int($body['interval'] ?? null) ? max(1, $body['interval']) : 5,
             expiresAt: Carbon::now()->getTimestamp() + $body['expires_in'],
         );
+    }
+
+    /**
+     * The link a person follows to approve the site must be on RiffRaff's own
+     * domain: the API host itself, or the dashboard domain it sits under,
+     * such as riff-raff.dev for api.riff-raff.dev.
+     */
+    private function isRiffRaffAddress(string $uri): bool
+    {
+        if (preg_match('/[\s<>"\'\\\\\p{C}]/u', $uri) === 1) {
+            return false;
+        }
+
+        $scheme = strtolower((string) parse_url($uri, PHP_URL_SCHEME));
+        $host = strtolower((string) parse_url($uri, PHP_URL_HOST));
+        $apiScheme = strtolower((string) parse_url($this->baseUrl(), PHP_URL_SCHEME));
+        $apiHost = strtolower((string) parse_url($this->baseUrl(), PHP_URL_HOST));
+
+        if ($host === '' || ! str_contains($host, '.') || ($scheme !== 'https' && $scheme !== $apiScheme)) {
+            return false;
+        }
+
+        return $host === $apiHost || str_ends_with($apiHost, '.' . $host);
     }
 
     private function approvalFrom(Response $response, PendingConnection $pending): PollResult
@@ -134,9 +185,16 @@ final class DeviceFlow
         return is_int($interval) && $interval > 0 ? $interval : $pending->interval + 5;
     }
 
+    private function retryAfter(Response $response): ?int
+    {
+        $seconds = $response->header('Retry-After');
+
+        return ctype_digit($seconds) && (int) $seconds > 0 ? (int) $seconds : null;
+    }
+
     private function describeFailure(Response $response): string
     {
-        $description = $response->json('error_description') ?? $response->json('message');
+        $description = $response->json('error_description') ?? $response->json('message') ?? $response->json('error');
 
         return is_string($description) && $description !== ''
             ? $description

@@ -11,6 +11,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Statamic\Console\RunsInPlease;
+use Symfony\Component\Console\Formatter\OutputFormatter;
 
 /**
  * Says where the site's key comes from and whether RiffRaff accepts it,
@@ -48,16 +49,17 @@ class StatusCommand extends Command
             $this->components->warn('A key is also saved in the addon settings. It is not used while ALT_RIFFRAFF_API_KEY is set.');
         }
 
-        $token = RiffRaff::token();
-
-        if ($token === null || $token === '') {
-            $this->components->error('Signing in to RiffRaff failed. Check ALT_RIFFRAFF_EMAIL and ALT_RIFFRAFF_PASSWORD.');
-
-            return self::FAILURE;
-        }
-
         try {
+            $token = RiffRaff::token();
+
+            if ($token === null || $token === '') {
+                $this->components->error('Signing in to RiffRaff failed. Check ALT_RIFFRAFF_EMAIL and ALT_RIFFRAFF_PASSWORD.');
+
+                return self::FAILURE;
+            }
+
             $response = Http::acceptJson()
+                ->withoutRedirecting()
                 ->timeout(self::TIMEOUT_SECONDS)
                 ->withToken($token)
                 ->get(RiffRaff::url('api_usage_path', '/api/usage'));
@@ -68,7 +70,7 @@ class StatusCommand extends Command
         }
 
         if ($response->status() === 401) {
-            $this->components->error('RiffRaff does not accept this key. It may have been revoked or replaced. Run php please riffraff:connect "Site name" --force to get a new one.');
+            $this->components->error('RiffRaff does not accept this key. It may have been revoked or replaced. Run php please riffraff:connect "Site name" --replace to get a new one.');
 
             return self::FAILURE;
         }
@@ -90,8 +92,8 @@ class StatusCommand extends Command
         $plan = $response->json('plan.name');
 
         $this->components->twoColumnDetail('Works', '<fg=green>Yes</>');
-        $this->components->twoColumnDetail('Site', is_string($site) && $site !== '' ? $site : 'Not linked to a site');
-        $this->components->twoColumnDetail('Plan', is_string($plan) && $plan !== '' ? $plan : 'None');
+        $this->components->twoColumnDetail('Site', is_string($site) && $site !== '' ? $this->escape($site) : 'Not linked to a site');
+        $this->components->twoColumnDetail('Plan', is_string($plan) && $plan !== '' ? $this->escape($plan) : 'None');
         $this->components->twoColumnDetail('Used this month', $this->usage($response));
     }
 
@@ -111,5 +113,10 @@ class StatusCommand extends Command
         $percent = $response->json('percent_used');
 
         return number_format($used) . ' of ' . number_format($limit) . (is_int($percent) ? " ({$percent}%)" : '');
+    }
+
+    private function escape(string $text): string
+    {
+        return OutputFormatter::escape((string) preg_replace('/\p{C}/u', '', $text));
     }
 }

@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace AltDesign\RiffRaff\Connect;
 
 use AltDesign\RiffRaff\Support\RiffRaff;
+use Illuminate\Contracts\Process\ProcessResult;
 use Illuminate\Support\Facades\Process;
 use Statamic\Addons\FileSettings;
 use Statamic\Facades\Addon;
+use Statamic\Facades\Path;
 use Throwable;
 
 /**
@@ -21,6 +23,10 @@ use Throwable;
 class KeyStorage
 {
     private const ADDON_ID = 'alt-design/alt-riffraff';
+
+    private const GIT_TIMEOUT_SECONDS = 10;
+
+    private ?string $gitFailure = null;
 
     public function __construct(private readonly ?string $basePath = null) {}
 
@@ -40,24 +46,24 @@ class KeyStorage
         return $this->canSave() && RiffRaff::apiKeyFromSettings() !== null;
     }
 
-    public function save(#[\SensitiveParameter] string $key): void
+    /**
+     * False when something listening for the save stopped it.
+     */
+    public function save(#[\SensitiveParameter] string $key): bool
     {
-        Addon::get(self::ADDON_ID)->settings()->set('api_key', $key)->save();
+        return Addon::get(self::ADDON_ID)->settings()->set('api_key', $key)->save();
     }
 
     /**
-     * Why saving a key here would be unsafe or would not take effect. Empty
-     * when it is fine to go ahead.
+     * Why saving a key here would be unsafe or would not take effect, and
+     * what is worth knowing but should not stop it.
      *
-     * @return list<string>
+     * @return array{problems: list<string>, warnings: list<string>}
      */
-    public function problems(): array
+    public function assess(): array
     {
         $problems = [];
-
-        if ($this->hasSavedKey()) {
-            $problems[] = 'A key is already saved in the addon settings. Run with --force to replace it.';
-        }
+        $warnings = [];
 
         if ((string) config('alt-riffraff.api_key', '') !== '') {
             $problems[] = 'ALT_RIFFRAFF_API_KEY is set in the environment, and it always wins over a saved key, so a saved key would not be used. Remove it from the environment first, or run with --force to save the key anyway.';
@@ -66,24 +72,37 @@ class KeyStorage
         $settingsFile = $this->settingsFile();
 
         if ($settingsFile === null) {
-            return $problems;
+            return ['problems' => $problems, 'warnings' => $warnings];
         }
 
         $relativeFile = $this->relativeToBase($settingsFile);
+        $gitStatus = $this->gitStatus($relativeFile);
+        $automation = $this->gitAutomationCovers($settingsFile);
+        $gitProblem = $this->gitProblem($gitStatus, $relativeFile, $automation);
 
-        if ($this->gitAutomationCovers($settingsFile)) {
-            $problems[] = "Statamic's git automation is on and covers {$relativeFile}, so saving the key would commit it, and push it if pushing is on. Take resources/addons out of statamic.git.paths in config/statamic/git.php first, or run with --force.";
+        if ($gitProblem !== null) {
+            $problems[] = $gitProblem;
         }
 
-        if ($this->isTracked($relativeFile)) {
-            $problems[] = "{$relativeFile} is tracked in this site's git repository, so the key would end up in a commit. Remove the file from the repository and add it to .gitignore in a normal deploy first, or run with --force.";
+        if ($gitStatus === GitStatus::NotIgnored && ! $automation) {
+            $warnings[] = "{$relativeFile} is not in the site's .gitignore, so a git add on this server would commit the key. Add it to .gitignore in the site's repository.";
         }
 
         if ($this->isInsideRelease($settingsFile)) {
-            $problems[] = 'This site deploys with zero downtime and resources/addons is inside the release directory, so the key would be lost on the next deploy. Add resources/addons to the site\'s shared paths in Forge first, copying what is in it now into the shared directory, or run with --force.';
+            $problems[] = "This site deploys with zero downtime and resources/addons is inside the release directory, so the key would be lost on the next deploy. Make resources/addons a shared path in Forge first (the addon's documentation covers what that changes), or run with --force.";
         }
 
-        return $problems;
+        return ['problems' => $problems, 'warnings' => $warnings];
+    }
+
+    private function gitProblem(GitStatus $status, string $relativeFile, bool $automation): ?string
+    {
+        return match (true) {
+            $status === GitStatus::Tracked => "{$relativeFile} is tracked in this site's git repository, so the key would end up in a commit. Remove the file from the repository and add it to .gitignore in a normal deploy first, or run with --force.",
+            $status === GitStatus::NotIgnored && $automation => "Statamic's git automation covers {$relativeFile} and the file is not in .gitignore, so saving the key would commit it, and push it if pushing is on. Add the file to the site's .gitignore and deploy first, or run with --force.",
+            $status === GitStatus::Unknown => "Could not check with git whether {$relativeFile} would be committed ({$this->gitFailure}). Run with --force if you are sure it will not be.",
+            default => null,
+        };
     }
 
     private function settingsFile(): ?string
@@ -97,20 +116,26 @@ class KeyStorage
         return $settings instanceof FileSettings ? (string) $settings->path() : null;
     }
 
+    /**
+     * Paths are resolved the way Statamic's own git automation resolves them,
+     * so a relative entry or one with `..` in it is matched as it would be.
+     */
     private function gitAutomationCovers(string $settingsFile): bool
     {
         if (! config('statamic.git.enabled')) {
             return false;
         }
 
+        $file = Path::resolve($settingsFile);
+
         foreach ((array) config('statamic.git.paths', []) as $path) {
             if (! is_string($path) || $path === '') {
                 continue;
             }
 
-            $path = rtrim($path, '/');
+            $tracked = rtrim(Path::resolve(Path::isAbsolute(Path::tidy($path)) ? $path : $this->basePath() . '/' . $path), '/');
 
-            if ($settingsFile === $path || str_starts_with($settingsFile, $path . '/')) {
+            if ($file === $tracked || str_starts_with($file, $tracked . '/')) {
                 return true;
             }
         }
@@ -118,16 +143,66 @@ class KeyStorage
         return false;
     }
 
-    private function isTracked(string $relativeFile): bool
+    private function gitStatus(string $relativeFile): GitStatus
+    {
+        $repository = $this->git(['rev-parse', '--is-inside-work-tree']);
+
+        if ($repository === null) {
+            return GitStatus::Unknown;
+        }
+
+        if (! $repository->successful()) {
+            return str_contains(strtolower($repository->errorOutput()), 'not a git repository')
+                ? GitStatus::NoRepository
+                : $this->gitFailed($repository);
+        }
+
+        $tracked = $this->git(['ls-files', '--error-unmatch', '--', $relativeFile]);
+
+        if ($tracked === null) {
+            return GitStatus::Unknown;
+        }
+
+        if ($tracked->successful()) {
+            return GitStatus::Tracked;
+        }
+
+        if ($tracked->exitCode() !== 1) {
+            return $this->gitFailed($tracked);
+        }
+
+        $ignored = $this->git(['check-ignore', '-q', '--', $relativeFile]);
+
+        return match ($ignored?->exitCode()) {
+            0 => GitStatus::Ignored,
+            1 => GitStatus::NotIgnored,
+            null => GitStatus::Unknown,
+            default => $this->gitFailed($ignored),
+        };
+    }
+
+    /**
+     * @param  list<string>  $arguments
+     */
+    private function git(array $arguments): ?ProcessResult
     {
         try {
             return Process::path($this->basePath())
-                ->timeout(10)
-                ->run(['git', 'ls-files', '--error-unmatch', '--', $relativeFile])
-                ->successful();
-        } catch (Throwable) {
-            return false;
+                ->timeout(self::GIT_TIMEOUT_SECONDS)
+                ->run(['git', ...$arguments]);
+        } catch (Throwable $e) {
+            $this->gitFailure = 'git could not be run: ' . $e::class;
+
+            return null;
         }
+    }
+
+    private function gitFailed(ProcessResult $result): GitStatus
+    {
+        $firstLine = trim(strtok(trim($result->errorOutput()), "\n") ?: '');
+        $this->gitFailure = $firstLine === '' ? 'git exited with ' . $result->exitCode() : $firstLine;
+
+        return GitStatus::Unknown;
     }
 
     /**
