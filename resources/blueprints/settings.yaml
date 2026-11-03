@@ -11,7 +11,7 @@ tabs:
               type: text
               input_type: password
               display: API key
-              instructions: 'Your Riff-Raff API key. If `ALT_RIFFRAFF_API_KEY` is set in the environment, that value is always used instead and this field is ignored. Note that this is saved to a file under `resources/addons`, which may be committed to version control, so prefer the environment variable for production secrets.'
+              instructions: 'Your RiffRaff API key. The simplest way to set it is to run `php please riffraff:connect "Site name"` on the server: a manager of your RiffRaff team approves the request in the dashboard, and the key is saved here without anyone copying it. If `ALT_RIFFRAFF_API_KEY` is set in the environment, that value is always used instead and this field is ignored. The key is saved to `resources/addons/alt-riffraff.yaml`, so keep that file out of version control.'
               instructions_position: above
               validate:
                 - nullable

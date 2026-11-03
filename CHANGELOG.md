@@ -4,7 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## [1.4.0] - 2026-11-03
+
+### Added
+
+- `php please riffraff:connect "Site name"` connects a site without anyone copying a key. It prints a code, a manager of the RiffRaff team approves it in the dashboard, and the key is saved to the addon settings. The key is never printed. It refuses when saving the key would be unsafe or would not take effect: a key is already saved, `ALT_RIFFRAFF_API_KEY` is set, Statamic's git automation or the site's repository would commit the settings file, or a zero downtime deploy would lose it. `--force` saves anyway. `--wait` sets how long it waits for approval; running it again picks up the request still waiting. Needs Statamic 6, which added addon settings.
+- `php please riffraff:status` reports where the key comes from, whether RiffRaff accepts it, and the site, plan and usage it belongs to, without printing the key.
+- `api_device_code_path` and `api_device_token_path` config options. A config file published before this release does not need them.
+
+### Changed
+
+- The API key setting's instructions now recommend `riffraff:connect`.
+
+## [1.3.0] - 2026-10-02
 
 ### Added
 

@@ -7,6 +7,8 @@ return [
     'api_authentication_path' => '/api/login',
     'api_evaluate_path' => '/api/evaluate',
     'api_usage_path' => '/api/usage',
+    'api_device_code_path' => '/api/device/code',
+    'api_device_token_path' => '/api/device/token',
     'api_key' => env('ALT_RIFFRAFF_API_KEY', ''),
     'api_email' => env('ALT_RIFFRAFF_EMAIL', ''),
     'api_password' => env('ALT_RIFFRAFF_PASSWORD', ''),
