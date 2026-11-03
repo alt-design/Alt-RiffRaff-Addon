@@ -38,6 +38,8 @@ An API key is the preferred method of authentication. The addon looks for one in
 
 If none of these is configured, spam checking is skipped and all submissions are allowed through as normal.
 
+If RiffRaff answers with an error, cannot be reached, or does not answer within 10 seconds, the submission is let through unchecked rather than lost. A connection failure or timeout is logged as a warning, `RiffRaff could not be reached, so a form submission was let through unchecked`, without the submission's content.
+
 ### Connecting a site
 
 Run this on the site's server, from the site's directory:

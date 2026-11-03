@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.1] - 2026-11-03
+
+### Fixed
+
+- A form submission is let through unchecked when RiffRaff cannot be reached or does not answer within 10 seconds. Until now a connection failure stopped the submission with an error, and a slow answer held it for up to 30 seconds. Each time it happens a warning is logged, without the submission.
+
+### Security
+
+- Build dependencies updated with `npm audit fix` (vite, browserslist, nanoid, source-map-js, baseline-browser-mapping). These are only used to build the control panel styles; the shipped assets are unchanged.
+
 ## [1.4.0] - 2026-11-03
 
 ### Added

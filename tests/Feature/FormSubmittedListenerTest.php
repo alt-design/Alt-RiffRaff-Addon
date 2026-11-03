@@ -3,8 +3,12 @@
 declare(strict_types=1);
 
 use AltDesign\RiffRaff\Listeners\FormSubmittedListener;
+use AltDesign\RiffRaff\Support\RiffRaff;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Statamic\Contracts\Forms\Form as FormContract;
 use Statamic\Contracts\Forms\Submission as SubmissionContract;
 use Statamic\Events\FormSubmitted;
@@ -320,4 +324,68 @@ it('drops an identical repeat even when no api credentials are configured', func
 
     expect(submitForm())->toBeTrue()
         ->and(submitForm())->toBeFalse();
+});
+
+it('lets the submission through and logs a warning when RiffRaff cannot be reached', function () {
+    Log::spy();
+    Http::fake(['https://api.riff-raff.test/api/evaluate' => Http::failedConnection()]);
+
+    expect(submitForm())->toBeTrue()
+        ->and(File::exists(base_path('content/riffraff')))->toBeFalse();
+
+    Log::shouldHaveReceived('warning')
+        ->with('RiffRaff could not be reached, so a form submission was let through unchecked', Mockery::on(
+            fn (array $context): bool => $context === ['exception' => ConnectionException::class],
+        ))
+        ->once();
+});
+
+it('lets the submission through when signing in cannot reach RiffRaff', function () {
+    config([
+        'alt-riffraff.api_key' => '',
+        'alt-riffraff.api_email' => 'site@example.test',
+        'alt-riffraff.api_password' => 'secret-password',
+        'alt-riffraff.api_authentication_path' => '/api/login',
+    ]);
+    Http::fake(['https://api.riff-raff.test/api/login' => Http::failedConnection()]);
+
+    expect(submitForm())->toBeTrue();
+    Http::assertNotSent(fn (Request $request): bool => str_ends_with($request->url(), '/api/evaluate'));
+});
+
+it('gives up on RiffRaff after the timeout rather than holding the submission', function () {
+    $timeouts = [];
+    Http::fake(function (Request $request, array $options) use (&$timeouts) {
+        $timeouts[] = $options['timeout'] ?? null;
+
+        return Http::response(['is_spam' => false, 'score' => 0, 'threshold' => 100, 'reasons' => []]);
+    });
+
+    submitForm();
+
+    expect($timeouts)->toBe([RiffRaff::TIMEOUT_SECONDS]);
+});
+
+it('gives up on signing in after the timeout', function () {
+    config([
+        'alt-riffraff.api_key' => '',
+        'alt-riffraff.api_email' => 'site@example.test',
+        'alt-riffraff.api_password' => 'secret-password',
+        'alt-riffraff.api_authentication_path' => '/api/login',
+    ]);
+    $timeouts = [];
+    Http::fake(function (Request $request, array $options) use (&$timeouts) {
+        $timeouts[$request->url()] = $options['timeout'] ?? null;
+
+        return str_ends_with($request->url(), '/api/login')
+            ? Http::response(['data' => '9|from-login'])
+            : Http::response(['is_spam' => false, 'score' => 0, 'threshold' => 100, 'reasons' => []]);
+    });
+
+    submitForm();
+
+    expect($timeouts)->toBe([
+        'https://api.riff-raff.test/api/login' => RiffRaff::TIMEOUT_SECONDS,
+        'https://api.riff-raff.test/api/evaluate' => RiffRaff::TIMEOUT_SECONDS,
+    ]);
 });

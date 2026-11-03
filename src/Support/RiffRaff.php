@@ -9,6 +9,12 @@ use Statamic\Facades\Addon;
 
 class RiffRaff
 {
+    /**
+     * Long enough for a slow answer, short enough that a visitor submitting
+     * a form is not left waiting when RiffRaff is unreachable.
+     */
+    public const TIMEOUT_SECONDS = 10;
+
     private const ADDON_ID = 'alt-design/alt-riffraff';
 
     /**
@@ -73,7 +79,7 @@ class RiffRaff
 
         $response = Http::withHeaders([
             'Accept' => 'application/json',
-        ])->post(self::url('api_authentication_path'), [
+        ])->timeout(self::TIMEOUT_SECONDS)->post(self::url('api_authentication_path'), [
             'email' => $email,
             'password' => $password,
         ]);

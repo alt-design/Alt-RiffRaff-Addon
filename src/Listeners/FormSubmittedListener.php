@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace AltDesign\RiffRaff\Listeners;
 
 use AltDesign\RiffRaff\Support\RiffRaff;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -26,9 +28,9 @@ class FormSubmittedListener
             return false;
         }
 
-        $token = RiffRaff::token();
+        $token = $this->token();
 
-        if (empty($token)) {
+        if ($token === null) {
             return true;
         }
 
@@ -56,12 +58,9 @@ class FormSubmittedListener
             $payload['subject'] = $subject;
         }
 
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $token,
-            'Accept' => 'application/json',
-        ])->post(RiffRaff::url('api_evaluate_path'), $payload);
+        $response = $this->evaluate($token, $payload);
 
-        if ($response->failed()) {
+        if ($response === null || $response->failed()) {
             return true;
         }
 
@@ -94,6 +93,45 @@ class FormSubmittedListener
         }
 
         return true;
+    }
+
+    private function token(): ?string
+    {
+        try {
+            $token = RiffRaff::token();
+        } catch (ConnectionException $exception) {
+            $this->reportUnreachable($exception);
+
+            return null;
+        }
+
+        return empty($token) ? null : $token;
+    }
+
+    /**
+     * @param  array<string, string>  $payload
+     */
+    private function evaluate(string $token, array $payload): ?Response
+    {
+        try {
+            return Http::withHeaders([
+                'Authorization' => 'Bearer ' . $token,
+                'Accept' => 'application/json',
+            ])
+                ->timeout(RiffRaff::TIMEOUT_SECONDS)
+                ->post(RiffRaff::url('api_evaluate_path'), $payload);
+        } catch (ConnectionException $exception) {
+            $this->reportUnreachable($exception);
+
+            return null;
+        }
+    }
+
+    private function reportUnreachable(ConnectionException $exception): void
+    {
+        Log::warning('RiffRaff could not be reached, so a form submission was let through unchecked', [
+            'exception' => $exception::class,
+        ]);
     }
 
     private function isDuplicate(FormSubmitted $event): bool
