@@ -114,6 +114,35 @@ Every submitted field is concatenated into a single block of content and sent to
 
 Add the handle of any field you don't want included, for example internal tracking fields, hidden metadata, or anything that shouldn't leave the site. The form's configured honeypot field is always excluded automatically, in addition to anything listed here.
 
+## Submission timing
+
+Bots post a form the moment it loads. RiffRaff scores a submission that arrives within a few seconds of the form being shown (under 2 seconds scores higher than under 5, and neither alone is enough to hold a submission).
+
+The addon works this out without trusting the browser. When a form is rendered with a `{{ form:create }}` tag pair, the addon adds one hidden input, `_riffraff_loaded`, just before the closing `</form>`. It holds the time the form loaded, signed with the site's `APP_KEY` and the form's handle. On submission the addon checks the signature and sends RiffRaff the seconds elapsed as `seconds_to_submit`. A visitor can't edit the time, because a changed value no longer matches its signature.
+
+No template changes are needed. The input is `type="hidden"`, so assistive technology ignores it and it adds nothing to the page.
+
+The timing is left out, rather than scored, when:
+
+- the form was rendered without the tag pair (the single `{{ form:create }}` tag that returns variables, or a template that builds the opening tag itself), so the input is missing
+- the form is submitted by JavaScript that sends only its own data rather than the form's inputs, so the hidden input never reaches the server (the `js` form drivers build their data from the blueprint's fields, so check yours)
+- the value is missing, altered, signed for another form, or in the future
+- the value is older than `timing_max_age` seconds (3600 by default, `ALT_RIFFRAFF_TIMING_MAX_AGE`)
+
+The field is not rendered at all while RiffRaff has no credentials (no API key and no login email and password), so a site that is not connected is unchanged.
+
+RiffRaff only ever scores a fast submission, so leaving the timing out can never turn a real enquiry into spam.
+
+The timing signal catches bots that post straight after the page loads. It is not a defence against a bot that fetches the form and waits before posting.
+
+### Statically cached pages
+
+A cached page carries the time it was first rendered, so every visitor looks slow. That can never make a submission look fast, so nothing is held wrongly, but it does mean the signal is lost. Past `timing_max_age` the addon sends nothing. To keep the signal on a cached page, put the form inside a `{{ nocache }}` region so it is rendered for each visitor. This has not been tested against a statically cached live site.
+
+### The honeypot
+
+Statamic's own honeypot already does this job. If a submission fills the form's honeypot field, Statamic discards it, shows the visitor the success message and never dispatches `FormSubmitted`, so the addon never sees it. The addon therefore adds no second hidden field and does not send a honeypot signal. Keep the honeypot enabled and rendered in your templates (`{{ honeypot }}`), and make sure the markup your template renders for it is hidden from assistive technology as well as visually.
+
 ## Duplicate submissions
 
 The same submission can arrive more than once, for example when a visitor clicks Submit again while a slow request is still running. RiffRaff drops a submission when an identical one (same form, same values) arrived within the last `duplicate_window` seconds, 60 by default. This happens before the spam check, so a repeat never reaches the RiffRaff API.
@@ -159,7 +188,7 @@ A held submission can be deleted individually from its listing, or all held subm
 
 The addon only sends data to the RiffRaff API (`ALT_RIFFRAFF_BASE_URL`, `https://api.riff-raff.dev` by default) over HTTPS, and only in these cases:
 
-- **On every form submission** (unless spam checking is skipped due to missing credentials): the concatenated content of all submitted fields except those in `excluded_content_fields` and the form's honeypot field, plus, if they can be identified from the submission, the sender's email address and a subject line.
+- **On every form submission** (unless spam checking is skipped due to missing credentials): the concatenated content of all submitted fields except those in `excluded_content_fields` and the form's honeypot field, plus, if they can be identified from the submission, the sender's email address and a subject line, and when the form carried a valid signed timestamp, the number of seconds between the form loading and being submitted.
 - **When authenticating with email and password** (only if no API key is configured): the configured `ALT_RIFFRAFF_EMAIL` and `ALT_RIFFRAFF_PASSWORD` are sent to the RiffRaff login endpoint to obtain a token.
 - **When viewing the RiffRaff control panel page**: a request is made to RiffRaff's usage endpoint to display how much of your plan's quota has been used. No site or submission data is sent with this request.
 - **When running `riffraff:connect`**: the site name you give it, then a code RiffRaff issued, every few seconds until the request is approved, denied or expires.

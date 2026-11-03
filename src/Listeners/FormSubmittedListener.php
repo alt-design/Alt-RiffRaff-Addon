@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace AltDesign\RiffRaff\Listeners;
 
+use AltDesign\RiffRaff\Support\FormTiming;
 use AltDesign\RiffRaff\Support\RiffRaff;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
@@ -58,6 +59,15 @@ class FormSubmittedListener
             $payload['subject'] = $subject;
         }
 
+        $secondsToSubmit = FormTiming::secondsSinceLoad(
+            request()->input(FormTiming::FIELD),
+            $event->submission->form()->handle(),
+        );
+
+        if ($secondsToSubmit !== null) {
+            $payload['seconds_to_submit'] = $secondsToSubmit;
+        }
+
         $response = $this->evaluate($token, $payload);
 
         if ($response === null || $response->failed()) {
@@ -109,7 +119,7 @@ class FormSubmittedListener
     }
 
     /**
-     * @param  array<string, string>  $payload
+     * @param  array<string, string|int>  $payload
      */
     private function evaluate(string $token, array $payload): ?Response
     {

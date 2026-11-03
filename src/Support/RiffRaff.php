@@ -29,6 +29,19 @@ class RiffRaff
         return $base . $path;
     }
 
+    /**
+     * Whether credentials are present, without contacting RiffRaff.
+     */
+    public static function isConfigured(): bool
+    {
+        if (self::apiKey()) {
+            return true;
+        }
+
+        return (string) config('alt-riffraff.api_email', '') !== ''
+            && (string) config('alt-riffraff.api_password', '') !== '';
+    }
+
     public static function token(): ?string
     {
         if ($apiKey = self::apiKey()) {
