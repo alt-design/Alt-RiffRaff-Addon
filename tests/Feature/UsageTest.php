@@ -8,6 +8,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Statamic\Facades\User;
 
 beforeEach(function () {
     config([
@@ -167,7 +168,7 @@ it('still renders the held submissions page when RiffRaff cannot be reached', fu
         'https://api.riff-raff.test/api/usage' => fn () => throw new ConnectionException('Connection refused'),
     ]);
 
-    $this->actingAs(Statamic\Facades\User::make()->makeSuper()->save())
+    $this->actingAs(User::make()->makeSuper()->save())
         ->get(cp_route('riffraff.index'))
         ->assertOk();
 });
