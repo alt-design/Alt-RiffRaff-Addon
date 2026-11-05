@@ -1,6 +1,10 @@
 # Statamic RiffRaff 
 
-> RiffRaff is a Statamic addon that analyses all form submissions and checks for spam. It uses the RiffRaff API to check for spam and provides a simple interface to manage spam submissions.
+> RiffRaff is a Statamic addon that checks form submissions for spam using the RiffRaff API, and holds suspected spam in the control panel for review, with the reasons it was flagged.
+
+## Requires a RiffRaff account
+
+The addon is free, but the checking is done by the [RiffRaff](https://riff-raff.dev) API, a separate service with a free tier and paid plans. The content of each form submission (all fields except those you exclude, plus the sender's email address and subject where found) is sent to `https://api.riff-raff.dev` over HTTPS to be scored. See [riff-raff.dev](https://riff-raff.dev) for plans and prices, and [DOCUMENTATION.md](DOCUMENTATION.md#what-data-leaves-the-site) for exactly what is sent.
 
 ## Features
 
@@ -41,7 +45,7 @@ ALT_RIFFRAFF_PASSWORD=
 ## How to Use
 
 1. The addon will automatically check all form submissions for spam.
-2. If a submission is detected as spam, it will be automatically "held" and you will be able to manage it from the "Review Spam" in the "Tools" section of the control panel.
+2. If a submission is detected as spam, it will be automatically "held" and you will be able to manage it under **Tools → RiffRaff** in the control panel, which needs the **View RiffRaff** permission.
 
 ## Documentation
 
