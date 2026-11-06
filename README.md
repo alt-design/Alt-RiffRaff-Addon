@@ -11,7 +11,7 @@ The addon is free, but the checking is done by the [RiffRaff](https://riff-raff.
 ## Features
 
 - Checks every form submission, with no template changes
-- Holds suspected spam under **Tools → RiffRaff**, out of your submissions list and inbox
+- Holds suspected spam under **Alt Tools → Spam → RiffRaff**, out of your submissions list and inbox
 - Shows the score of each held submission and the reason for every point scored
 - Releases a false positive as a normal form submission, or deletes held spam one at a time or all at once
 - Scores forms posted within seconds of loading, using a signed timestamp the visitor cannot edit
@@ -55,7 +55,7 @@ ALT_RIFFRAFF_API_KEY=
 
 1. The addon checks every form submission for spam. There is nothing to add to your templates.
 2. A submission RiffRaff flags is held. The visitor still sees the form's normal success message, and no notification email is sent.
-3. Held submissions are under **Tools → RiffRaff** in the control panel, with the score and the reasons for each. Open one to **Release** it as a normal submission or delete it.
+3. Held submissions are under **Alt Tools → Spam → RiffRaff** in the control panel, with the score and the reasons for each. Open one to **Release** it as a normal submission or delete it.
 
 Held submissions are stored as YAML under `content/riffraff`. They contain whatever the visitor typed, so add `content/riffraff` to `.gitignore` if your content is committed to git.
 

@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.6.0] - 2026-11-06
+
+### Changed
+
+- The control panel item has moved from **Tools** to **Alt Tools → Spam**, a group shared with the other Alt spam addons. Its icon now comes from Statamic's own icon set, so it matches the rest of the nav. A nav customisation that moved or renamed the item needs setting up again.
+
 ## [1.5.1] - 2026-11-06
 
 ### Fixed
