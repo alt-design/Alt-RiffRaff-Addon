@@ -6,7 +6,7 @@ RiffRaff checks every Statamic form submission against the [RiffRaff](https://ri
 
 ## Requires a RiffRaff account
 
-The addon is free, but the checking is done by the [RiffRaff](https://riff-raff.dev) API, a separate service with a free tier and paid plans. The content of each form submission (all fields except those you exclude, plus the sender's email address and subject where found) is sent to `https://api.riff-raff.dev` over HTTPS to be scored. See [riff-raff.dev](https://riff-raff.dev) for plans and prices, and [DOCUMENTATION.md](DOCUMENTATION.md#what-data-leaves-the-site) for exactly what is sent.
+The addon is free, but the checking is done by the [RiffRaff](https://riff-raff.dev) API, a separate service with a free tier and paid plans. **[Sign up at riff-raff.dev](https://riff-raff.dev/register)** to get an account before installing. The content of each form submission (all fields except those you exclude, plus the sender's email address and subject where found) is sent to `https://api.riff-raff.dev` over HTTPS to be scored. See [riff-raff.dev](https://riff-raff.dev) for plans and prices, and [DOCUMENTATION.md](DOCUMENTATION.md#what-data-leaves-the-site) for exactly what is sent.
 
 ## Features
 
@@ -29,7 +29,9 @@ Saving the key from the control panel or with `riffraff:connect` needs Statamic 
 
 ## How to Install
 
-Run the following command from your project root:
+If you do not have a RiffRaff account yet, [create one at riff-raff.dev](https://riff-raff.dev/register) first. The free tier is enough to get going.
+
+Then run the following command from your project root:
 
 ``` bash
 composer require alt-design/alt-riffraff
@@ -41,9 +43,9 @@ Then connect the site to RiffRaff by running this on the server (Statamic 6):
 php please riffraff:connect "Acme website"
 ```
 
-It prints a code. A manager of your RiffRaff team enters it in the RiffRaff dashboard, and the key is saved to the addon settings without anyone copying it. Check it worked with `php please riffraff:status`. See [Connecting a site](DOCUMENTATION.md#connecting-a-site) for running it through Forge and what to do if it refuses.
+It prints a code. A manager of your RiffRaff team enters it at [riff-raff.dev/connect](https://riff-raff.dev/connect), and the key is saved to the addon settings without anyone copying it. Check it worked with `php please riffraff:status`. See [Connecting a site](DOCUMENTATION.md#connecting-a-site) for running it through Forge and what to do if it refuses.
 
-Alternatively, add a key to your `.env` file, which always takes priority over a saved one:
+Alternatively, create a key under [Settings → API tokens](https://riff-raff.dev/settings/api-tokens) in your RiffRaff account and add it to your `.env` file, which always takes priority over a saved one:
 
 ``` bash
 ALT_RIFFRAFF_API_KEY=
