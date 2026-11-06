@@ -5,14 +5,14 @@ RiffRaff checks every Statamic form submission against the [RiffRaff](https://ri
 ## Requirements
 
 - Statamic 5.74 or later, or Statamic 6.26 or later, on PHP 8.2 or later. Saving the key from the control panel or with `riffraff:connect` needs Statamic 6, which has addon settings; on Statamic 5, set the key in the environment.
-- A RiffRaff account and API key. RiffRaff is a separate service, not part of this addon (see below).
+- A RiffRaff account, which you can [create at riff-raff.dev](https://riff-raff.dev/register), and an API key. RiffRaff is a separate service, not part of this addon (see below).
 - A server that can make outgoing HTTPS requests to `api.riff-raff.dev`.
 
 ## RiffRaff is a separate, paid service
 
 This addon is free and open source, but the spam checking is done by the RiffRaff API at [riff-raff.dev](https://riff-raff.dev), which is a separate service run by Alt Design. It has a free tier and paid plans, each with a monthly allowance of checked submissions. See [riff-raff.dev](https://riff-raff.dev) for the current plans and prices.
 
-Without a RiffRaff key the addon does nothing to your submissions. When a plan's allowance is used up, further submissions are let through unchecked until it resets.
+Without a RiffRaff key the addon does nothing to your submissions. Connect the site with [`riffraff:connect`](#connecting-a-site), or create a key under [Settings → API tokens](https://riff-raff.dev/settings/api-tokens) in your RiffRaff account and set it as `ALT_RIFFRAFF_API_KEY`. When a plan's allowance is used up, further submissions are let through unchecked until it resets.
 
 Form content is sent to RiffRaff to be scored, so check that this fits your privacy notice. [What data leaves the site](#what-data-leaves-the-site) lists exactly what is sent.
 
