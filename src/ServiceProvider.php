@@ -7,6 +7,7 @@ namespace AltDesign\RiffRaff;
 use AltDesign\RiffRaff\Console\Commands\ConnectCommand;
 use AltDesign\RiffRaff\Console\Commands\StatusCommand;
 use AltDesign\RiffRaff\Listeners\FormSubmittedListener;
+use AltDesign\RiffRaff\Support\AltToolsNav;
 use AltDesign\RiffRaff\Support\FormTiming;
 use Closure;
 use Illuminate\Support\Facades\Event;
@@ -20,7 +21,7 @@ use Statamic\Statamic;
 class ServiceProvider extends AddonServiceProvider
 {
     protected $routes = [
-        'cp' => __DIR__ . '/../routes/cp.php',
+        'cp' => __DIR__.'/../routes/cp.php',
     ];
 
     protected $commands = [
@@ -73,18 +74,14 @@ class ServiceProvider extends AddonServiceProvider
     private function addToNav(): void
     {
         Nav::extend(function ($nav): void {
-            $nav->content('RiffRaff')
-                ->section('Alt Tools')
-                ->can('view riffraff')
-                ->route('riffraff.index')
-                ->icon('<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" /></svg>');
+            AltToolsNav::add($nav, 'spam', 'RiffRaff', 'riffraff.index', 'view riffraff', ['mail-inbox-content', 'email-utility']);
         });
     }
 
     private function setupPublishables(): void
     {
         $this->publishes([
-            __DIR__ . '/../config/alt-riffraff.php' => config_path('alt-riffraff.php'),
+            __DIR__.'/../config/alt-riffraff.php' => config_path('alt-riffraff.php'),
         ], 'alt-design/alt-riffraff');
 
         Statamic::afterInstalled(function ($command): void {
