@@ -188,7 +188,7 @@ A site has a `contact` form with `name`, `email` and `message` fields, rendered 
 {{ /form:contact }}
 ```
 
-No template changes are needed. A visitor posts a message containing spam phrases and links. RiffRaff scores it over the threshold, so the addon stops it being saved as a form submission, no notification email is sent, and the visitor still sees the normal success message. The submission appears under **Alt Tools → RiffRaff** with its score and the reasons, for example `Spam phrases detected`. If it was a genuine enquiry, **Release** saves it as an ordinary form submission.
+No template changes are needed. A visitor posts a message containing spam phrases and links. RiffRaff scores it over the threshold, so the addon stops it being saved as a form submission, no notification email is sent, and the visitor still sees the normal success message. The submission appears under **Alt Tools → Spam → RiffRaff** with its score and the reasons, for example `Spam phrases detected`. If it was a genuine enquiry, **Release** saves it as an ordinary form submission.
 
 ## How held submissions work
 
@@ -203,7 +203,7 @@ Held submissions contain whatever the visitor typed, which may include personal 
 
 ### Finding held submissions
 
-Held submissions appear under **Alt Tools → RiffRaff** in the control panel. A user needs the **View RiffRaff** permission, which can be granted per role in **Users → Roles**. The permission is checked on the server for every RiffRaff page and action, so hiding the link is not the only protection. It covers viewing, releasing and deleting, so give it only to people you trust to do all three.
+Held submissions appear under **Alt Tools → Spam → RiffRaff** in the control panel. A user needs the **View RiffRaff** permission, which can be granted per role in **Users → Roles**. The permission is checked on the server for every RiffRaff page and action, so hiding the link is not the only protection. It covers viewing, releasing and deleting, so give it only to people you trust to do all three.
 
 Each entry shows a preview of the submission along with its spam score and the reasons it was flagged.
 
