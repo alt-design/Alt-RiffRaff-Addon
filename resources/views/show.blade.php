@@ -19,7 +19,7 @@
                 <div>
                     <p class="rr:text-xs rr:font-medium rr:text-gray-500 rr:uppercase rr:tracking-wide">Spam score</p>
                     <p class="rr:text-2xl rr:font-semibold {{ $submission['score_view']['is_over'] ? 'rr:text-red-600' : 'rr:text-amber-600' }}">
-                        {{ $submission['score_view']['score'] }} <span class="rr:text-base rr:text-gray-400 rr:font-normal">/ {{ $submission['score_view']['threshold'] }} threshold</span>
+                        {{ $submission['score_view']['score'] }} <span class="rr:text-base rr:text-gray-500 rr:font-normal">/ {{ $submission['score_view']['threshold'] }} threshold</span>
                     </p>
                 </div>
                 <p class="rr:text-sm rr:text-gray-600">{{ ucfirst($submission['score_view']['margin_label']) }}</p>
@@ -30,7 +30,7 @@
                      style="width: {{ $submission['score_view']['percent'] }}%"></div>
                 <div class="rr:absolute rr:top-0 rr:bottom-0 rr:border-l rr:border-gray-400" style="left: 100%"></div>
             </div>
-            <p class="rr:text-xs rr:text-gray-400 rr:mt-1">The line marks the threshold. The bar is capped at 100% even when the score runs over it.</p>
+            <p class="rr:text-xs rr:text-gray-500 rr:mt-1">The line marks the threshold. The bar is capped at 100% even when the score runs over it.</p>
         </div>
 
         <div class="rr:bg-white rr:border rr:border-gray-200 rr:rounded-md rr:shadow-sm rr:p-4 rr:mb-4">
@@ -54,7 +54,7 @@
                         <dt class="rr:text-sm rr:font-medium rr:text-gray-600">{{ $field['label'] }}</dt>
                         <dd class="rr:col-span-2 rr:text-sm rr:text-gray-900 rr:whitespace-pre-wrap rr:break-words">
                             @if ($field['is_empty'])
-                                <span class="rr:text-gray-400">Empty</span>
+                                <span class="rr:text-gray-500">Empty</span>
                             @else
                                 {{ $field['value'] }}
                             @endif

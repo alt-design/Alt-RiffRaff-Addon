@@ -7,6 +7,7 @@ namespace AltDesign\RiffRaff\Http\Controllers;
 use AltDesign\RiffRaff\Support\RiffRaff;
 use AltDesign\RiffRaff\Support\TemplateGuard;
 use Carbon\Carbon;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -359,9 +360,16 @@ class AltSpamController
         ];
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
     private function fetchUsage(): ?array
     {
-        $token = RiffRaff::token();
+        try {
+            $token = RiffRaff::token();
+        } catch (ConnectionException) {
+            return null;
+        }
 
         if (empty($token)) {
             return null;
@@ -370,18 +378,30 @@ class AltSpamController
         return Cache::remember(
             'alt-riffraff.usage.' . sha1($token),
             now()->addSeconds(30),
-            function () use ($token): ?array {
-                $response = Http::withHeaders([
-                    'Authorization' => 'Bearer ' . $token,
-                    'Accept' => 'application/json',
-                ])->get(RiffRaff::url('api_usage_path'));
-
-                if ($response->failed()) {
-                    return null;
-                }
-
-                return $response->json();
-            }
+            fn (): ?array => $this->requestUsage($token)
         );
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function requestUsage(string $token): ?array
+    {
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $token,
+                'Accept' => 'application/json',
+            ])
+                ->timeout(RiffRaff::TIMEOUT_SECONDS)
+                ->get(RiffRaff::url('api_usage_path'));
+        } catch (ConnectionException) {
+            return null;
+        }
+
+        if ($response->failed()) {
+            return null;
+        }
+
+        return $response->json();
     }
 }

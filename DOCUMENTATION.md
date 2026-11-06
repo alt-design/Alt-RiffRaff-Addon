@@ -2,6 +2,20 @@
 
 RiffRaff checks every Statamic form submission against the [RiffRaff](https://riff-raff.dev) spam detection API. Submissions flagged as spam are held back before they reach the site's normal form submissions and are queued for review in the control panel, where they can be released as false positives or deleted.
 
+## Requirements
+
+- Statamic 5.74 or later, or Statamic 6.26 or later, on PHP 8.2 or later. Saving the key from the control panel or with `riffraff:connect` needs Statamic 6, which has addon settings; on Statamic 5, set the key in the environment.
+- A RiffRaff account and API key. RiffRaff is a separate service, not part of this addon (see below).
+- A server that can make outgoing HTTPS requests to `api.riff-raff.dev`.
+
+## RiffRaff is a separate, paid service
+
+This addon is free and open source, but the spam checking is done by the RiffRaff API at [riff-raff.dev](https://riff-raff.dev), which is a separate service run by Alt Design. It has a free tier and paid plans, each with a monthly allowance of checked submissions. See [riff-raff.dev](https://riff-raff.dev) for the current plans and prices.
+
+Without a RiffRaff key the addon does nothing to your submissions. When a plan's allowance is used up, further submissions are let through unchecked until it resets.
+
+Form content is sent to RiffRaff to be scored, so check that this fits your privacy notice. [What data leaves the site](#what-data-leaves-the-site) lists exactly what is sent.
+
 ## Installation
 
 ```bash
@@ -161,6 +175,21 @@ Some forms legitimately receive identical submissions close together, such as a 
 
 To turn duplicate checking off entirely, set `ALT_RIFFRAFF_DUPLICATE_WINDOW=0`.
 
+## Example
+
+A site has a `contact` form with `name`, `email` and `message` fields, rendered as normal:
+
+```antlers
+{{ form:contact }}
+    <input type="text" name="name" value="{{ old:name }}">
+    <input type="email" name="email" value="{{ old:email }}">
+    <textarea name="message">{{ old:message }}</textarea>
+    <button type="submit">Send</button>
+{{ /form:contact }}
+```
+
+No template changes are needed. A visitor posts a message containing spam phrases and links. RiffRaff scores it over the threshold, so the addon stops it being saved as a form submission, no notification email is sent, and the visitor still sees the normal success message. The submission appears under **Tools → RiffRaff** with its score and the reasons, for example `Spam phrases detected`. If it was a genuine enquiry, **Release** saves it as an ordinary form submission.
+
 ## How held submissions work
 
 When RiffRaff flags a submission as spam, the addon:
@@ -170,9 +199,11 @@ When RiffRaff flags a submission as spam, the addon:
 
 Held submissions never reach the form's usual submissions list until they're released.
 
+Held submissions contain whatever the visitor typed, which may include personal data. If the site's `content/` directory is committed to git, or Statamic's git automation is on, add `content/riffraff` to `.gitignore` so held spam is not committed.
+
 ### Finding held submissions
 
-Held submissions appear under **Tools → RiffRaff** in the control panel. This link is only visible to users with the **View RiffRaff** permission, which can be granted per role in **Users → Roles**.
+Held submissions appear under **Tools → RiffRaff** in the control panel. A user needs the **View RiffRaff** permission, which can be granted per role in **Users → Roles**. The permission is checked on the server for every RiffRaff page and action, so hiding the link is not the only protection. It covers viewing, releasing and deleting, so give it only to people you trust to do all three.
 
 Each entry shows a preview of the submission along with its spam score and the reasons it was flagged.
 
@@ -190,8 +221,12 @@ The addon only sends data to the RiffRaff API (`ALT_RIFFRAFF_BASE_URL`, `https:/
 
 - **On every form submission** (unless spam checking is skipped due to missing credentials): the concatenated content of all submitted fields except those in `excluded_content_fields` and the form's honeypot field, plus, if they can be identified from the submission, the sender's email address and a subject line, and when the form carried a valid signed timestamp, the number of seconds between the form loading and being submitted.
 - **When authenticating with email and password** (only if no API key is configured): the configured `ALT_RIFFRAFF_EMAIL` and `ALT_RIFFRAFF_PASSWORD` are sent to the RiffRaff login endpoint to obtain a token.
-- **When viewing the RiffRaff control panel page**: a request is made to RiffRaff's usage endpoint to display how much of your plan's quota has been used. No site or submission data is sent with this request.
+- **When viewing the RiffRaff control panel page**: a request is made to RiffRaff's usage endpoint to display how much of your plan's quota has been used. No site or submission data is sent with this request. If RiffRaff cannot be reached, the page still loads and the usage panel is left out.
 - **When running `riffraff:connect`**: the site name you give it, then a code RiffRaff issued, every few seconds until the request is approved, denied or expires.
 - **When running `riffraff:status`**: the same usage request as the control panel page.
 
 No data is sent anywhere else, and no data leaves the site for form submissions that are not evaluated (for example, when no credentials are configured).
+
+## Support
+
+Support is through GitHub issues: [github.com/alt-design/Alt-RiffRaff-Addon/issues](https://github.com/alt-design/Alt-RiffRaff-Addon/issues). Problems with the RiffRaff service itself, such as plans, billing or the dashboard, are best raised through [riff-raff.dev](https://riff-raff.dev).

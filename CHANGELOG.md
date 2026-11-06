@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.1] - 2026-11-06
+
+### Fixed
+
+- The held submissions page in the control panel no longer fails when RiffRaff cannot be reached. The usage panel is left out, and the request to RiffRaff now gives up after 10 seconds.
+- Muted text on the review screens has more contrast against its background.
+
+### Changed
+
+- The documentation states that RiffRaff is a separate service with a free tier and paid plans, adds requirements, a worked example and a support section, and recommends keeping `content/riffraff` out of git.
+
 ## [1.5.0] - 2026-11-03
 
 ### Added

@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 use AltDesign\RiffRaff\Http\Controllers\AltSpamController;
 use AltDesign\RiffRaff\Support\RiffRaff;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Statamic\Facades\User;
 
 beforeEach(function () {
     config([
@@ -118,4 +121,54 @@ it('caches the usage response so repeat calls dont hit the api', function () {
 
     expect(invokeFetchUsage()['used'])->toBe(1)
         ->and(invokeFetchUsage()['used'])->toBe(1);
+});
+
+it('returns null usage when RiffRaff cannot be reached', function () {
+    config(['alt-riffraff.api_key' => '17|abc123']);
+
+    Http::fake([
+        'https://api.riff-raff.test/api/usage' => fn () => throw new ConnectionException('Connection refused'),
+    ]);
+
+    expect(invokeFetchUsage())->toBeNull();
+});
+
+it('returns null usage when the email and password login cannot reach RiffRaff', function () {
+    config([
+        'alt-riffraff.api_email' => 'me@example.test',
+        'alt-riffraff.api_password' => 'secret',
+    ]);
+
+    Http::fake([
+        'https://api.riff-raff.test/api/login' => fn () => throw new ConnectionException('Connection refused'),
+    ]);
+
+    expect(invokeFetchUsage())->toBeNull();
+});
+
+it('gives the usage request a timeout', function () {
+    config(['alt-riffraff.api_key' => '17|abc123']);
+
+    $timeouts = [];
+    Http::fake(function (Request $request, array $options) use (&$timeouts) {
+        $timeouts[] = $options['timeout'] ?? null;
+
+        return Http::response(['used' => 1], 200);
+    });
+
+    invokeFetchUsage();
+
+    expect($timeouts)->toBe([RiffRaff::TIMEOUT_SECONDS]);
+});
+
+it('still renders the held submissions page when RiffRaff cannot be reached', function () {
+    config(['alt-riffraff.api_key' => '17|abc123']);
+
+    Http::fake([
+        'https://api.riff-raff.test/api/usage' => fn () => throw new ConnectionException('Connection refused'),
+    ]);
+
+    $this->actingAs(User::make()->makeSuper()->save())
+        ->get(cp_route('riffraff.index'))
+        ->assertOk();
 });

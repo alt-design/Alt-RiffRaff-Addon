@@ -163,7 +163,7 @@
                                         </p>
                                     @endif
                                 @else
-                                    <span class="rr:text-gray-400">No reasons recorded</span>
+                                    <span class="rr:text-gray-500">No reasons recorded</span>
                                 @endif
                             </td>
                             <td class="rr:px-4 rr:py-3 rr:text-gray-700 rr:max-w-xs">
