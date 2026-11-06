@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Changed
+
+- The control panel item has moved from **Tools** to a new **Alt Tools** section, which the other Alt addons share. A nav customisation that moved or renamed the item needs setting up again.
+
 ## [1.5.1] - 2026-11-06
 
 ### Fixed
